@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Footvolley Overlay</title>
+    <style>
+        /*
+        FOOTVOLLEY LIVESTREAM OVERLAY STYLES
+        
+        This overlay is designed to:
+        1. Be completely transparent except for the graphics
+        2. Work well with OBS Browser Source
+        3. Look professional for footvolley (beach volleyball style)
+        4. Be clearly visible over GoPro footage
+        5. Automatically adapt to different information being shown
+        */
+        
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent; /* Completely transparent for OBS */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+            color: white;
+        }
+
+        .overlay-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none; /* Don't interfere with anything behind */
+        }
+
+        /*
+        MAIN SCOREBOARD
+        Positioned at top center, highly visible
+        */
+        .scoreboard {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.8) 100%);
+            border: 3px solid #FFD700; /* Gold border for premium look */
+            border-radius: 15px;
+            padding: 20px 40px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+            transition: all 0.5s ease;
+        }
+
+        .scoreboard-content {
+            display: flex;
+            align-items: center;
+            gap: 40px;
+            min-width: 400px;
+        }
+
+        .team {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .team-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFD700; /* Gold for team names */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            min-height: 22px; /* Prevent layout shift */
+        }
+
+        .player-names {
+            font-size: 14px;
+            color: #E0E0E0;
+            text-align: center;
+            line-height: 1.2;
+            display: none; /* Hidden by default */
+        }
+
+        .team-score {
+            font-size: 48px;
+            font-weight: bold;
+            color: #FFFFFF;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .score-separator {
+            font-size: 36px;
+            color: #888;
+            margin: 0 20px;
+        }
+
+        /*
+        SET SCORES DISPLAY
+        Shows underneath main scoreboard when relevant
+        */
+        .set-scores {
+            position: absolute;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            border-radius: 10px;
+            padding: 10px 20px;
+            display: none; /* Show only when sets are being tracked */
+        }
+
+        .set-scores-content {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .set-score {
+            color: #E0E0E0;
+        }
+
+        .set-score.current {
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        /*
+        TOURNAMENT INFO
+        Bottom left corner - context information
+        */
+        .tournament-info {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            background: rgba(0,0,0,0.8);
+            border-left: 4px solid #FFD700;
+            border-radius: 8px;
+            padding: 15px 20px;
+            max-width: 300px;
+        }
+
+        .tournament-name {
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFD700;
+            margin-bottom: 5px;
+        }
+
+        .tournament-round {
+            font-size: 14px;
+            color: #E0E0E0;
+        }
+
+        /*
+        REPLAY INDICATOR
+        Center screen, attention-grabbing
+        */
+        .replay-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #FF6B6B 0%, #EE5A52 100%);
+            color: white;
+            padding: 30px 60px;
+            border-radius: 20px;
+            font-size: 36px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 10px 40px rgba(255,107,107,0.6);
+            border: 3px solid rgba(255,255,255,0.3);
+            display: none;
+            animation: replayPulse 1.5s infinite;
+        }
+
+        @keyframes replayPulse {
+            0% { 
+                transform: translate(-50%, -50%) scale(1);
+                box-shadow: 0 10px 40px rgba(255,107,107,0.6);
+            }
+            50% { 
+                transform: translate(-50%, -50%) scale(1.05);
+                box-shadow: 0 15px 50px rgba(255,107,107,0.8);
+            }
+            100% { 
+                transform: translate(-50%, -50%) scale(1);
+                box-shadow: 0 10px 40px rgba(255,107,107,0.6);
+            }
+        }
+
+        /*
+        RANKINGS TABLE
+        Right side of screen, tournament context
+        */
+        .rankings-container {
+            position: absolute;
+            top: 100px;
+            right: 30px;
+            background: rgba(0,0,0,0.9);
+            border: 2px solid #FFD700;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 350px;
+            display: none;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        }
+
+        .rankings-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #FFD700;
+            text-align: center;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .rankings-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .rankings-table th {
+            background: rgba(255,215,0,0.2);
+            color: #FFD700;
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: bold;
+            border-bottom: 2px solid #FFD700;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .rankings-table td {
+            padding: 10px 15px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: #E0E0E0;
+            font-size: 14px;
+        }
+
+        .rankings-table tr:nth-child(even) {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .rankings-table tr:hover {
+            background: rgba(255,215,0,0.1);
+        }
+
+        /* Highlight top 3 positions */
+        .rankings-table .position-1 td:first-child {
+            color: #FFD700;
+            font-weight: bold;
+        }
+
+        .rankings-table .position-2 td:first-child {
+            color: #C0C0C0;
+            font-weight: bold;
+        }
+
+        .rankings-table .position-3 td:first-child {
+            color: #CD7F32;
+            font-weight: bold;
+        }
+
+        /*
+        FADE IN/OUT ANIMATIONS
+        Smooth transitions for better viewing experience
+        */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        .fade-out {
+            animation: fadeOut 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateY(0); }
+            to { opacity: 0; transform: translateY(-20px); }
+        }
+
+        /*
+        RESPONSIVE DESIGN
+        Ensure overlay works on different screen sizes
+        */
+        @media (max-width: 768px) {
+            .scoreboard {
+                top: 20px;
+                padding: 15px 25px;
+            }
+            
+            .scoreboard-content {
+                gap: 20px;
+                min-width: 300px;
+            }
+            
+            .team-score {
+                font-size: 36px;
+            }
+            
+            .team-name {
+                font-size: 16px;
+            }
+            
+            .rankings-container {
+                max-width: 280px;
+                right: 15px;
+                padding: 20px;
+            }
+            
+            .tournament-info {
+                bottom: 20px;
+                left: 20px;
+                padding: 12px 15px;
+            }
+        }
+
+        /*
+        UTILITY CLASSES
+        */
+        .hidden {
+            display: none !important;
+        }
+
+        .visible {
+            display: block !important;
+        }
+
+        .flex-visible {
+            display: flex !important;
+        }
+
+        /*
+        LOADING STATE
+        */
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255,255,255,0.7);
+            font-size: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="overlay-container">
+        <!-- LOADING STATE -->
+        <div class="loading" id="loading-indicator">
+            🔄 Connecting to referee control...
+        </div>
+
+        <!-- MAIN SCOREBOARD -->
+        <div class="scoreboard" id="scoreboard">
+            <div class="scoreboard-content">
+                <!-- TEAM 1 -->
+                <div class="team">
+                    <div class="team-name" id="team1-name">Team 1</div>
+                    <div class="player-names" id="team1-players">
+                        <div id="team1-player1">Player 1A</div>
+                        <div id="team1-player2">Player 1B</div>
+                    </div>
+                    <div class="team-score" id="team1-score">0</div>
+                </div>
+
+                <!-- SEPARATOR -->
+                <div class="score-separator">-</div>
+
+                <!-- TEAM 2 -->
+                <div class="team">
+                    <div class="team-name" id="team2-name">Team 2</div>
+                    <div class="player-names" id="team2-players">
+                        <div id="team2-player1">Player 2A</div>
+                        <div id="team2-player2">Player 2B</div>
+                    </div>
+                    <div class="team-score" id="team2-score">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SET SCORES -->
+        <div class="set-scores" id="set-scores">
+            <div class="set-scores-content" id="set-scores-content">
+                <!-- Set scores will be populated here -->
+            </div>
+        </div>
+
+        <!-- TOURNAMENT INFO -->
+        <div class="tournament-info" id="tournament-info">
+            <div class="tournament-name" id="tournament-name">Footvolley Tournament 2025</div>
+            <div class="tournament-round" id="tournament-round">Quarter Finals - Match 1</div>
+        </div>
+
+        <!-- REPLAY INDICATOR -->
+        <div class="replay-indicator" id="replay-indicator">
+            🔄 Replay
+        </div>
+
+        <!-- RANKINGS TABLE -->
+        <div class="rankings-container" id="rankings-container">
+            <div class="rankings-title">🏆 Tournament Rankings</div>
+            <table class="rankings-table">
+                <thead>
+                    <tr>
+                        <th>Pos</th>
+                        <th>Team</th>
+                        <th>Wins</th>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+                <tbody id="rankings-content">
+                    <!-- Rankings will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Socket.IO for real-time communication -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        /**
+         * FOOTVOLLEY OVERLAY JAVASCRIPT
+         * 
+         * This script handles:
+         * 1. Real-time updates from referee control panel
+         * 2. Smooth animations and transitions
+         * 3. Automatic showing/hiding of different elements
+         * 4. Fetching tournament rankings from Google Sheets
+         */
+        
+        // Connect to server for real-time updates
+        const socket = io();
+        
+        // Get references to all overlay elements
+        const elements = {
+            loading: document.getElementById('loading-indicator'),
+            scoreboard: document.getElementById('scoreboard'),
+            
+            // Team 1 elements
+            team1Name: document.getElementById('team1-name'),
+            team1Score: document.getElementById('team1-score'),
+            team1Players: document.getElementById('team1-players'),
+            team1Player1: document.getElementById('team1-player1'),
+            team1Player2: document.getElementById('team1-player2'),
+            
+            // Team 2 elements
+            team2Name: document.getElementById('team2-name'),
+            team2Score: document.getElementById('team2-score'),
+            team2Players: document.getElementById('team2-players'),
+            team2Player1: document.getElementById('team2-player1'),
+            team2Player2: document.getElementById('team2-player2'),
+            
+            // Other elements
+            setScores: document.getElementById('set-scores'),
+            setScoresContent: document.getElementById('set-scores-content'),
+            tournamentInfo: document.getElementById('tournament-info'),
+            tournamentName: document.getElementById('tournament-name'),
+            tournamentRound: document.getElementById('tournament-round'),
+            replayIndicator: document.getElementById('replay-indicator'),
+            rankingsContainer: document.getElementById('rankings-container'),
+            rankingsContent: document.getElementById('rankings-content')
+        };
+        
+        // Store current game state
+        let currentGameState = {};
+        
+        /**
+         * CONNECTION HANDLING
+         */
+        socket.on('connect', () => {
+            console.log('✅ Overlay connected to server');
+            elements.loading.style.display = 'none';
+            elements.scoreboard.style.display = 'block';
+        });
+        
+        socket.on('disconnect', () => {
+            console.log('❌ Overlay disconnected from server');
+            elements.loading.style.display = 'block';
+            elements.loading.textContent = '❌ Connection lost - Reconnecting...';
+        });
+        
+        /**
+         * GAME STATE UPDATES
+         * Main function that updates the overlay when referee makes changes
+         */
+        socket.on('gameStateUpdate', (gameState) => {
+            console.log('📊 Overlay received game state update:', gameState);
+            currentGameState = gameState;
+            updateOverlay();
+        });
+        
+        /**
+         * UPDATE OVERLAY DISPLAY
+         * This function updates all visual elements based on current game state
+         */
+        function updateOverlay() {
+            const state = currentGameState;
+            
+            // Update team names and scores
+            updateTeamInfo(state);
+            
+            // Update set scores if being tracked
+            updateSetScores(state);
+            
+            // Update tournament information
+            updateTournamentInfo(state);
+            
+            // Handle replay indicator
+            handleReplayDisplay(state);
+            
+            // Handle rankings display
+            handleRankingsDisplay(state);
+            
+            // Handle player names vs team names
+            handlePlayerNamesDisplay(state);
+        }
+        
+        /**
+         * UPDATE TEAM INFORMATION
+         */
+        function updateTeamInfo(state) {
+            if (state.team1) {
+                elements.team1Name.textContent = state.team1.name || 'Team 1';
+                elements.team1Score.textContent = state.team1.score || 0;
+                
+                // Update player names
+                if (state.team1.players) {
+                    elements.team1Player1.textContent = state.team1.players[0] || '';
+                    elements.team1Player2.textContent = state.team1.players[1] || '';
+                }
+            }
+            
+            if (state.team2) {
+                elements.team2Name.textContent = state.team2.name || 'Team 2';
+                elements.team2Score.textContent = state.team2.score || 0;
+                
+                // Update player names
+                if (state.team2.players) {
+                    elements.team2Player1.textContent = state.team2.players[0] || '';
+                    elements.team2Player2.textContent = state.team2.players[1] || '';
+                }
+            }
+        }
+        
+        /**
+         * UPDATE SET SCORES
+         */
+        function updateSetScores(state) {
+            if (!state.setScores || state.currentSet === 1) {
+                elements.setScores.style.display = 'none';
+                return;
+            }
+            
+            let html = '<span>Sets: </span>';
+            for (let i = 0; i < state.maxSets; i++) {
+                const team1Score = state.setScores.team1[i] || 0;
+                const team2Score = state.setScores.team2[i] || 0;
+                const isCurrentSet = (i + 1) === state.currentSet;
+                
+                if (team1Score > 0 || team2Score > 0 || isCurrentSet) {
+                    html += `<span class="set-score ${isCurrentSet ? 'current' : ''}">${team1Score}-${team2Score}</span>`;
+                }
+            }
+            
+            elements.setScoresContent.innerHTML = html;
+            elements.setScores.style.display = 'block';
+        }
+        
+        /**
+         * UPDATE TOURNAMENT INFO
+         */
+        function updateTournamentInfo(state) {
+            if (state.tournament) {
+                elements.tournamentName.textContent = state.tournament.name || 'Footvolley Tournament';
+                
+                const roundText = state.tournament.round || 'Match';
+                const matchNumber = state.tournament.matchNumber || 1;
+                elements.tournamentRound.textContent = `${roundText} - Match ${matchNumber}`;
+            }
+        }
+        
+        /**
+         * HANDLE REPLAY DISPLAY
+         */
+        function handleReplayDisplay(state) {
+            if (state.showReplay) {
+                elements.replayIndicator.classList.add('visible');
+                elements.replayIndicator.classList.add('fade-in');
+                
+                // Auto-hide after animation
+                setTimeout(() => {
+                    elements.replayIndicator.classList.remove('visible');
+                    elements.replayIndicator.classList.remove('fade-in');
+                }, 4500);
+            }
+        }
+        
+        /**
+         * HANDLE RANKINGS DISPLAY
+         */
+        function handleRankingsDisplay(state) {
+            if (state.showRankings) {
+                fetchAndDisplayRankings();
+            } else {
+                elements.rankingsContainer.classList.remove('visible');
+            }
+        }
+        
+        /**
+         * HANDLE PLAYER NAMES VS TEAM NAMES
+         */
+        function handlePlayerNamesDisplay(state) {
+            if (state.showPlayerNames) {
+                // Show player names, hide team names
+                elements.team1Name.style.display = 'none';
+                elements.team2Name.style.display = 'none';
+                elements.team1Players.style.display = 'block';
+                elements.team2Players.style.display = 'block';
+            } else {
+                // Show team names, hide player names
+                elements.team1Name.style.display = 'block';
+                elements.team2Name.style.display = 'block';
+                elements.team1Players.style.display = 'none';
+                elements.team2Players.style.display = 'none';
+            }
+        }
+        
+        /**
+         * FETCH AND DISPLAY RANKINGS
+         * Get tournament rankings from Google Sheets and display them
+         */
+        async function fetchAndDisplayRankings() {
+            try {
+                console.log('📊 Fetching tournament rankings...');
+                
+                const response = await fetch('/api/rankings');
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.log('⚠️ Rankings not available:', data.message);
+                    
+                    // Show placeholder rankings
+                    displayPlaceholderRankings();
+                    return;
+                }
+                
+                if (data.data && data.data.length > 0) {
+                    displayRankings(data.data);
+                } else {
+                    displayPlaceholderRankings();
+                }
+                
+                // Show rankings container with animation
+                elements.rankingsContainer.classList.add('visible');
+                elements.rankingsContainer.classList.add('fade-in');
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    elements.rankingsContainer.classList.remove('visible');
+                    elements.rankingsContainer.classList.remove('fade-in');
+                }, 10000);
+                
+            } catch (error) {
+                console.error('❌ Error fetching rankings:', error);
+                displayPlaceholderRankings();
+            }
+        }
+        
+        /**
+         * DISPLAY RANKINGS DATA
+         */
+        function displayRankings(rankingsData) {
+            let html = '';
+            
+            // Skip header row and process data
+            rankingsData.slice(1).forEach((row, index) => {
+                const position = index + 1;
+                const team = row[0] || `Team ${position}`;
+                const wins = row[1] || '0';
+                const points = row[2] || '0';
+                
+                html += `
+                    <tr class="position-${position}">
+                        <td>${position}</td>
+                        <td>${team}</td>
+                        <td>${wins}</td>
+                        <td>${points}</td>
+                    </tr>
+                `;
+            });
+            
+            elements.rankingsContent.innerHTML = html;
+            console.log('📊 Rankings displayed successfully');
+        }
+        
+        /**
+         * DISPLAY PLACEHOLDER RANKINGS
+         * Show example rankings when Google Sheets is not available
+         */
+        function displayPlaceholderRankings() {
+            const placeholderData = [
+                ['Beach Legends', '3', '9'],
+                ['Sand Warriors', '2', '6'],
+                ['Spike Masters', '2', '6'],
+                ['Net Ninjas', '1', '3'],
+                ['Serve Aces', '0', '0']
+            ];
+            
+            let html = '';
+            placeholderData.forEach((team, index) => {
+                const position = index + 1;
+                html += `
+                    <tr class="position-${position}">
+                        <td>${position}</td>
+                        <td>${team[0]}</td>
+                        <td>${team[1]}</td>
+                        <td>${team[2]}</td>
+                    </tr>
+                `;
+            });
+            
+            elements.rankingsContent.innerHTML = html;
+            console.log('📊 Placeholder rankings displayed');
+        }
+        
+        /**
+         * INITIALIZE OVERLAY
+         */
+        function initializeOverlay() {
+            console.log('🏐 Footvolley overlay initialized');
+            console.log('📺 Waiting for referee control updates...');
+            
+            // Hide loading indicator after a moment if connection is successful
+            setTimeout(() => {
+                if (socket.connected) {
+                    elements.loading.style.display = 'none';
+                    elements.scoreboard.style.display = 'block';
+                }
+            }, 2000);
+        }
+        
+        // Start the overlay when page loads
+        initializeOverlay();
+        
+        /**
+         * ERROR HANDLING
+         */
+        window.addEventListener('error', (e) => {
+            console.error('❌ Overlay error:', e.error);
+        });
+        
+        // Prevent context menu and other interactions
+        document.addEventListener('contextmenu', (e) => e.preventDefault());
+        document.addEventListener('selectstart', (e) => e.preventDefault());
+        document.addEventListener('dragstart', (e) => e.preventDefault());
+    </script>
+</body>
+</html>

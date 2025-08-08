@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏐 Footvolley Referee Control</title>
+    <style>
+        /* 
+        REFEREE CONTROL PANEL STYLES
+        
+        This interface is designed to be:
+        1. Large buttons for easy clicking during match
+        2. Clear visual feedback
+        3. Simple layout that non-tech people can understand
+        4. Mobile-friendly for use on tablet/phone
+        */
+        
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .status-bar {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        /* Make single column on mobile */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .section {
+            background: rgba(255,255,255,0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .section.full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .section h2 {
+            margin-top: 0;
+            color: #4a5568;
+            font-size: 1.5em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        /* TEAM CONTROL STYLING */
+        .team-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .team-control {
+            padding: 20px;
+            border: 3px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f7fafc;
+            transition: all 0.3s ease;
+        }
+        
+        .team-control:hover {
+            border-color: #667eea;
+            transform: translateY(-2px);
+        }
+        
+        .team-control h3 {
+            margin-top: 0;
+            color: #2d3748;
+            font-size: 1.2em;
+        }
+        
+        /* SCORE DISPLAY - Big and prominent */
+        .score-display {
+            font-size: 4em;
+            font-weight: bold;
+            text-align: center;
+            color: #667eea;
+            margin: 15px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            border: 3px solid #e2e8f0;
+        }
+        
+        /* INPUT FIELDS - Large and easy to read */
+        input[type="text"], input[type="number"], select {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            transition: border-color 0.3s ease;
+        }
+        
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        /* BUTTONS - Large, colorful, and easy to press */
+        .btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 5px;
+            transition: all 0.3s ease;
+            min-height: 50px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+        }
+        
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Button variants */
+        .btn-success {
+            background: #48bb78;
+        }
+        
+        .btn-success:hover {
+            background: #38a169;
+        }
+        
+        .btn-danger {
+            background: #f56565;
+        }
+        
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+        
+        .btn-warning {
+            background: #ed8936;
+        }
+        
+        .btn-warning:hover {
+            background: #dd6b20;
+        }
+        
+        .btn-large {
+            font-size: 18px;
+            padding: 20px 30px;
+            min-height: 60px;
+        }
+        
+        /* Score adjustment buttons */
+        .score-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        /* Action grid for main controls */
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        /* Quick actions bar */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        
+        /* Status indicators */
+        .status-online {
+            color: #48bb78;
+        }
+        
+        .status-offline {
+            color: #f56565;
+        }
+        
+        /* Replay queue display */
+        .replay-queue {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        
+        .replay-item {
+            background: white;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            border-left: 4px solid #667eea;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        /* Set scores display */
+        .set-scores {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .set-score {
+            background: white;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+            border: 2px solid #e2e8f0;
+            font-weight: bold;
+        }
+        
+        .set-score.current {
+            border-color: #667eea;
+            background: #ebf4ff;
+        }
+        
+        /* Help text */
+        .help-text {
+            background: #ebf4ff;
+            border: 1px solid #bee3f8;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-size: 14px;
+            color: #2b6cb0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏐 Footvolley Referee Control</h1>
+        <div class="status-bar">
+            <span id="connection-status">🔄 Connecting...</span>
+            <span style="margin-left: 20px;">Match: <span id="current-match">Loading...</span></span>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- SCORE CONTROL SECTION -->
+        <div class="section">
+            <h2>⚽ Score Control</h2>
+            <div class="help-text">
+                💡 <strong>Quick tip:</strong> Use +1/-1 buttons during play, or type exact scores
+            </div>
+            
+            <div class="team-controls">
+                <!-- TEAM 1 CONTROLS -->
+                <div class="team-control">
+                    <h3>Team 1</h3>
+                    <input type="text" id="team1-name" placeholder="Enter team name">
+                    <div class="score-display" id="team1-display">0</div>
+                    <input type="number" id="team1-score" min="0" value="0" style="text-align: center; font-size: 18px;">
+                    <div class="score-buttons">
+                        <button class="btn btn-success" onclick="adjustScore(1, 1)">+1 Point</button>
+                        <button class="btn btn-danger" onclick="adjustScore(1, -1)">-1 Point</button>
+                    </div>
+                </div>
+                
+                <!-- TEAM 2 CONTROLS -->
+                <div class="team-control">
+                    <h3>Team 2</h3>
+                    <input type="text" id="team2-name" placeholder="Enter team name">
+                    <div class="score-display" id="team2-display">0</div>
+                    <input type="number" id="team2-score" min="0" value="0" style="text-align: center; font-size: 18px;">
+                    <div class="score-buttons">
+                        <button class="btn btn-success" onclick="adjustScore(2, 1)">+1 Point</button>
+                        <button class="btn btn-danger" onclick="adjustScore(2, -1)">-1 Point</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- SET MANAGEMENT -->
+            <div style="margin-top: 20px;">
+                <h3>📊 Set Management</h3>
+                <div class="help-text">
+                    Current Set: <strong id="current-set">1</strong> | Best of <strong id="max-sets">3</strong>
+                </div>
+                <div class="set-scores" id="set-scores">
+                    <!-- Set scores will be populated here -->
+                </div>
+                <div class="action-grid">
+                    <button class="btn btn-warning" onclick="winSet(1)">🏆 Team 1 Wins Set</button>
+                    <button class="btn btn-warning" onclick="winSet(2)">🏆 Team 2 Wins Set</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- PLAYER NAMES SECTION -->
+        <div class="section">
+            <h2>👥 Player Names</h2>
+            <div class="help-text">
+                💡 <strong>Optional:</strong> Enter individual player names for detailed display
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label>
+                    <input type="checkbox" id="show-players-toggle" onchange="togglePlayerNames()">
+                    Show player names instead of team names
+                </label>
+            </div>
+            
+            <!-- TEAM 1 PLAYERS -->
+            <div style="margin-bottom: 20px;">
+                <h3>Team 1 Players</h3>
+                <input type="text" id="team1-player1" placeholder="Player 1 name">
+                <input type="text" id="team1-player2" placeholder="Player 2 name">
+            </div>
+            
+            <!-- TEAM 2 PLAYERS -->
+            <div>
+                <h3>Team 2 Players</h3>
+                <input type="text" id="team2-player1" placeholder="Player 1 name">
+                <input type="text" id="team2-player2" placeholder="Player 2 name">
+            </div>
+        </div>
+
+        <!-- REPLAY CONTROLS -->
+        <div class="section">
+            <h2>🔄 Replay Controls</h2>
+            <div class="help-text">
+                💡 <strong>How to use:</strong> Queue replays during play, show them during breaks
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <input type="text" id="replay-description" placeholder="Describe the replay (e.g., 'Great spike')" style="margin-bottom: 10px;">
+                <button class="btn btn-large" onclick="queueReplay()">📝 Queue Replay</button>
+            </div>
+            
+            <div class="action-grid">
+                <button class="btn btn-success btn-large" onclick="showReplay()">▶️ Show Replay Now</button>
+                <button class="btn btn-warning" onclick="clearReplayQueue()">🗑️ Clear Queue</button>
+            </div>
+            
+            <!-- REPLAY QUEUE DISPLAY -->
+            <div class="replay-queue">
+                <h4>📋 Queued Replays:</h4>
+                <div id="replay-list">
+                    <div style="color: #666; font-style: italic;">No replays queued</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DISPLAY CONTROLS -->
+        <div class="section">
+            <h2>📺 Display Controls</h2>
+            <div class="help-text">
+                💡 <strong>Tournament info:</strong> Show rankings between sets or during breaks
+            </div>
+            
+            <div class="action-grid">
+                <button class="btn btn-success btn-large" onclick="showRankings()">🏆 Show Rankings (10s)</button>
+                <button class="btn" onclick="toggleOverlayVisibility()">👁️ Toggle Overlay</button>
+            </div>
+            
+            <!-- TOURNAMENT INFO -->
+            <div style="margin-top: 20px;">
+                <h3>🏆 Tournament Info</h3>
+                <input type="text" id="tournament-name" placeholder="Tournament name" value="Footvolley Tournament 2025">
+                <select id="tournament-round">
+                    <option value="Qualifiers">Qualifiers</option>
+                    <option value="Round of 16">Round of 16</option>
+                    <option value="Quarter Finals" selected>Quarter Finals</option>
+                    <option value="Semi Finals">Semi Finals</option>
+                    <option value="Final">Final</option>
+                </select>
+                <input type="number" id="match-number" placeholder="Match number" value="1" min="1">
+            </div>
+        </div>
+
+        <!-- QUICK ACTIONS -->
+        <div class="section full-width">
+            <h2>⚡ Quick Actions</h2>
+            <div class="quick-actions">
+                <button class="btn btn-danger btn-large" onclick="resetScores()">🔄 Reset Scores</button>
+                <button class="btn btn-danger" onclick="resetMatch()">🔄 Reset Match</button>
+                <button class="btn btn-warning" onclick="swapTeams()">🔄 Swap Teams</button>
+                <button class="btn" onclick="openOverlay()">📺 Open Overlay</button>
+                <button class="btn" onclick="refreshPage()">🔄 Refresh</button>
+                <button class="btn btn-success" onclick="saveMatchData()">💾 Save Match</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Socket.IO for real-time communication -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        /**
+         * REFEREE CONTROL PANEL JAVASCRIPT
+         * 
+         * This handles all the referee interactions and sends them to the overlay
+         * Everything is designed to be simple and reliable for non-tech users
+         */
+        
+        // Connect to our server for real-time communication
+        const socket = io();
+        
+        // Store current game state
+        let currentGameState = {};
+        
+        // Get references to all the input elements
+        const elements = {
+            // Team names
+            team1Name: document.getElementById('team1-name'),
+            team2Name: document.getElementById('team2-name'),
+            
+            // Scores
+            team1Score: document.getElementById('team1-score'),
+            team2Score: document.getElementById('team2-score'),
+            team1Display: document.getElementById('team1-display'),
+            team2Display: document.getElementById('team2-display'),
+            
+            // Player names
+            team1Player1: document.getElementById('team1-player1'),
+            team1Player2: document.getElementById('team1-player2'),
+            team2Player1: document.getElementById('team2-player1'),
+            team2Player2: document.getElementById('team2-player2'),
+            
+            // Other controls
+            replayDescription: document.getElementById('replay-description'),
+            replayList: document.getElementById('replay-list'),
+            connectionStatus: document.getElementById('connection-status'),
+            currentMatch: document.getElementById('current-match'),
+            currentSet: document.getElementById('current-set'),
+            maxSets: document.getElementById('max-sets'),
+            setScores: document.getElementById('set-scores'),
+            
+            // Tournament info
+            tournamentName: document.getElementById('tournament-name'),
+            tournamentRound: document.getElementById('tournament-round'),
+            matchNumber: document.getElementById('match-number')
+        };
+        
+        /**
+         * CONNECTION STATUS HANDLING
+         */
+        socket.on('connect', () => {
+            elements.connectionStatus.innerHTML = '✅ <span class="status-online">Connected</span>';
+            console.log('✅ Connected to server');
+        });
+        
+        socket.on('disconnect', () => {
+            elements.connectionStatus.innerHTML = '❌ <span class="status-offline">Disconnected</span>';
+            console.log('❌ Disconnected from server');
+        });
+        
+        /**
+         * RECEIVE GAME STATE UPDATES
+         * When overlay or other controls change something, update our interface
+         */
+        socket.on('gameStateUpdate', (gameState) => {
+            currentGameState = gameState;
+            updateUI();
+            console.log('📊 Game state updated:', gameState);
+        });
+        
+        /**
+         * UPDATE USER INTERFACE
+         * This function updates all the visual elements when game state changes
+         */
+        function updateUI() {
+            const state = currentGameState;
+            
+            // Update team names and scores
+            if (state.team1) {
+                elements.team1Name.value = state.team1.name || '';
+                elements.team1Score.value = state.team1.score || 0;
+                elements.team1Display.textContent = state.team1.score || 0;
+                
+                // Update player names
+                if (state.team1.players) {
+                    elements.team1Player1.value = state.team1.players[0] || '';
+                    elements.team1Player2.value = state.team1.players[1] || '';
+                }
+            }
+            
+            if (state.team2) {
+                elements.team2Name.value = state.team2.name || '';
+                elements.team2Score.value = state.team2.score || 0;
+                elements.team2Display.textContent = state.team2.score || 0;
+                
+                // Update player names
+                if (state.team2.players) {
+                    elements.team2Player1.value = state.team2.players[0] || '';
+                    elements.team2Player2.value = state.team2.players[1] || '';
+                }
+            }
+            
+            // Update set information
+            if (state.currentSet) {
+                elements.currentSet.textContent = state.currentSet;
+            }
+            if (state.maxSets) {
+                elements.maxSets.textContent = state.maxSets;
+            }
+            
+            // Update set scores display
+            updateSetScoresDisplay();
+            
+            // Update replay queue
+            updateReplayQueueDisplay();
+            
+            // Update tournament info
+            if (state.tournament) {
+                elements.tournamentName.value = state.tournament.name || '';
+                elements.tournamentRound.value = state.tournament.round || '';
+                elements.matchNumber.value = state.tournament.matchNumber || 1;
+                elements.currentMatch.textContent = `${state.tournament.round} - Match ${state.tournament.matchNumber}`;
+            }
+        }
+        
+        /**
+         * UPDATE SET SCORES DISPLAY
+         */
+        function updateSetScoresDisplay() {
+            if (!currentGameState.setScores) return;
+            
+            let html = '';
+            for (let i = 0; i < currentGameState.maxSets; i++) {
+                const team1Score = currentGameState.setScores.team1[i] || 0;
+                const team2Score = currentGameState.setScores.team2[i] || 0;
+                const isCurrentSet = (i + 1) === currentGameState.currentSet;
+                
+                html += `
+                    <div class="set-score ${isCurrentSet ? 'current' : ''}">
+                        <div>Set ${i + 1}</div>
+                        <div>${team1Score} - ${team2Score}</div>
+                    </div>
+                `;
+            }
+            elements.setScores.innerHTML = html;
+        }
+        
+        /**
+         * UPDATE REPLAY QUEUE DISPLAY
+         */
+        function updateReplayQueueDisplay() {
+            if (!currentGameState.replayQueue || currentGameState.replayQueue.length === 0) {
+                elements.replayList.innerHTML = '<div style="color: #666; font-style: italic;">No replays queued</div>';
+                return;
+            }
+            
+            let html = '';
+            currentGameState.replayQueue.forEach((replay, index) => {
+                html += `
+                    <div class="replay-item">
+                        <span><strong>${replay.description}</strong> (${replay.timestamp})</span>
+                        <button class="btn btn-danger" onclick="removeReplay(${index})" style="margin: 0; padding: 5px 10px; font-size: 12px;">Remove</button>
+                    </div>
+                `;
+            });
+            elements.replayList.innerHTML = html;
+        }
+        
+        /**
+         * SCORE ADJUSTMENT FUNCTIONS
+         * These are called when referee clicks +1/-1 buttons
+         */
+        function adjustScore(team, delta) {
+            const currentScore = team === 1 ? 
+                (currentGameState.team1?.score || 0) : 
+                (currentGameState.team2?.score || 0);
+            
+            const newScore = Math.max(0, currentScore + delta);
+            
+            socket.emit('updateScore', { team, score: newScore });
+            
+            console.log(`📊 Score adjusted: Team ${team} ${delta > 0 ? '+' : ''}${delta} = ${newScore}`);
+        }
+        
+        /**
+         * SET MANAGEMENT FUNCTIONS
+         */
+        function winSet(team) {
+            if (confirm(`Confirm: Team ${team} wins Set ${currentGameState.currentSet}?`)) {
+                socket.emit('winSet', { team });
+                console.log(`🏆 Set ${currentGameState.currentSet} won by team ${team}`);
+            }
+        }
+        
+        /**
+         * REPLAY FUNCTIONS
+         */
+        function queueReplay() {
+            const description = elements.replayDescription.value.trim() || 'Replay';
+            socket.emit('queueReplay', { description });
+            elements.replayDescription.value = ''; // Clear input
+            console.log(`🔄 Replay queued: ${description}`);
+        }
+        
+        function showReplay() {
+            socket.emit('showReplay');
+            console.log('🔄 Showing replay on overlay');
+        }
+        
+        function removeReplay(index) {
+            // Remove replay from queue (implementation depends on your needs)
+            console.log(`🗑️ Removing replay at index ${index}`);
+        }
+        
+        function clearReplayQueue() {
+            if (confirm('Clear all queued replays?')) {
+                // Implementation to clear replay queue
+                console.log('🗑️ Replay queue cleared');
+            }
+        }
+        
+        /**
+         * DISPLAY CONTROL FUNCTIONS
+         */
+        function showRankings() {
+            socket.emit('toggleRankings');
+            console.log('🏆 Showing rankings on overlay');
+        }
+        
+        function toggleOverlayVisibility() {
+            // This could hide/show the entire overlay
+            console.log('👁️ Toggling overlay visibility');
+        }
+        
+        function togglePlayerNames() {
+            socket.emit('togglePlayerNames');
+            console.log('👥 Toggling player names display');
+        }
+        
+        /**
+         * UTILITY FUNCTIONS
+         */
+        function resetScores() {
+            if (confirm('Reset both scores to 0?')) {
+                socket.emit('updateScore', { team: 1, score: 0 });
+                socket.emit('updateScore', { team: 2, score: 0 });
+                console.log('🔄 Scores reset');
+            }
+        }
+        
+        function resetMatch() {
+            if (confirm('Reset entire match (scores, sets, replays)?')) {
+                socket.emit('resetMatch');
+                console.log('🔄 Match reset');
+            }
+        }
+        
+        function swapTeams() {
+            if (confirm('Swap team positions?')) {
+                // Implementation to swap teams
+                console.log('🔄 Teams swapped');
+            }
+        }
+        
+        function openOverlay() {
+            window.open('/overlay.html', '_blank');
+            console.log('📺 Overlay window opened');
+        }
+        
+        function refreshPage() {
+            location.reload();
+        }
+        
+        function saveMatchData() {
+            // Implementation to save current match data
+            console.log('💾 Match data saved');
+            alert('Match data saved! (Feature coming soon)');
+        }
+        
+        /**
+         * INPUT EVENT LISTENERS
+         * These watch for changes in the input fields and send updates
+         */
+        
+        // Team name changes
+        elements.team1Name.addEventListener('change', () => {
+            socket.emit('updateTeamName', { team: 1, name: elements.team1Name.value });
+        });
+        
+        elements.team2Name.addEventListener('change', () => {
+            socket.emit('updateTeamName', { team: 2, name: elements.team2Name.value });
+        });
+        
+        // Score changes (when typed directly)
+        elements.team1Score.addEventListener('change', () => {
+            const score = parseInt(elements.team1Score.value) || 0;
+            socket.emit('updateScore', { team: 1, score });
+        });
+        
+        elements.team2Score.addEventListener('change', () => {
+            const score = parseInt(elements.team2Score.value) || 0;
+            socket.emit('updateScore', { team: 2, score });
+        });
+        
+        // Player name changes
+        function updatePlayerNames(team) {
+            const players = team === 1 ? 
+                [elements.team1Player1.value, elements.team1Player2.value] :
+                [elements.team2Player1.value, elements.team2Player2.value];
+            
+            socket.emit('updatePlayerNames', { team, players });
+        }
+        
+        elements.team1Player1.addEventListener('change', () => updatePlayerNames(1));
+        elements.team1Player2.addEventListener('change', () => updatePlayerNames(1));
+        elements.team2Player1.addEventListener('change', () => updatePlayerNames(2));
+        elements.team2Player2.addEventListener('change', () => updatePlayerNames(2));
+        
+        // Tournament info changes
+        elements.tournamentName.addEventListener('change', () => {
+            // Update tournament info
+        });
+        
+        elements.tournamentRound.addEventListener('change', () => {
+            // Update tournament info
+        });
+        
+        elements.matchNumber.addEventListener('change', () => {
+            // Update tournament info
+        });
+        
+        /**
+         * KEYBOARD SHORTCUTS
+         * For faster referee control during intense moments
+         */
+        document.addEventListener('keydown', (e) => {
+            // Only process shortcuts if not typing in an input field
+            if (e.target.tagName === 'INPUT') return;
+            
+            switch(e.key) {
+                case '1':
+                    adjustScore(1, 1);
+                    break;
+                case '2':
+                    adjustScore(2, 1);
+                    break;
+                case 'r':
+                case 'R':
+                    showReplay();
+                    break;
+                case 't':
+                case 'T':
+                    showRankings();
+                    break;
+                case 'Escape':
+                    resetScores();
+                    break;
+            }
+        });
+        
+        console.log('🎮 Referee Control Panel loaded');
+        console.log('⌨️  Keyboard shortcuts: 1/2 = add point, R = replay, T = rankings, ESC = reset scores');
+    </script>
+</body>
+</html>
