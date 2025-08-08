@@ -3,26 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Footvolley Overlay</title>
+    <title>San Diego Footvolley Open - Overlay</title>
     <style>
         /*
-        FOOTVOLLEY LIVESTREAM OVERLAY STYLES
+        SAN DIEGO FOOTVOLLEY OPEN - BRANDED OVERLAY
         
-        This overlay is designed to:
-        1. Be completely transparent except for the graphics
-        2. Work well with OBS Browser Source
-        3. Look professional for footvolley (beach volleyball style)
-        4. Be clearly visible over GoPro footage
-        5. Automatically adapt to different information being shown
+        Tournament branding with four-corner layout:
+        - Top Left: Scoreboard with OPEN logo
+        - Top Right: Host logos (SDFTV + NFA)
+        - Bottom Left: Tournament info with division selector
+        - Bottom Right: Rotating sponsors
         */
+        
+        @font-face {
+            font-family: 'DayPosterBlack';
+            src: url('/fonts/DAYPBL__.TTF') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+        
+        @font-face {
+            font-family: 'AcuminVariable';
+            src: url('/fonts/Acumin-Variable-Concept.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
         
         body {
             margin: 0;
             padding: 0;
-            background: transparent; /* Completely transparent for OBS */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: transparent;
+            font-family: 'AcuminVariable', 'Segoe UI', sans-serif;
             overflow: hidden;
             color: white;
+            width: 100vw;
+            height: 100vh;
         }
 
         .overlay-container {
@@ -31,151 +46,381 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            pointer-events: none; /* Don't interfere with anything behind */
+            pointer-events: none;
         }
 
-        /*
-        MAIN SCOREBOARD
-        Positioned at top center, highly visible
-        */
-        .scoreboard {
+        /* BRANDING COLORS FROM MANUAL */
+        :root {
+            --primary-pink: #FF6B9D;
+            --primary-orange: #FF8A3D;
+            --primary-yellow: #FFD93D;
+            --primary-green: #6BCF7F;
+            --primary-blue: #4F9BFF;
+            --primary-purple: #9B7BFF;
+            --dark-bg: rgba(0,0,0,0.9);
+            --light-bg: rgba(255,255,255,0.95);
+        }
+
+        /* TOP LEFT: OPEN LOGO + NFA LOGO SIDE BY SIDE - ALIGNED HEIGHT */
+        .open-logo-topleft {
             position: absolute;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.8) 100%);
-            border: 3px solid #FFD700; /* Gold border for premium look */
+            top: 2vh; /* Aligned with tournament info */
+            left: 2vw;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Space between logos */
+        }
+
+        .open-logo-topleft .open-logo {
+            max-width: 224px; /* Increased from 187px by 20% */
+            max-height: 295px; /* Increased from 246px by 20% */
+            object-fit: contain;
+            filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.6));
+        }
+
+        .open-logo-topleft .nfa-logo {
+            max-width: 97px; /* Increased from 84px by 15% (30% smaller + 15% increase) */
+            max-height: 97px; /* Increased from 84px by 15% */
+            object-fit: contain;
+            filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.6));
+        }
+
+        /* Legacy img selector for backwards compatibility */
+        .open-logo-topleft img:not(.nfa-logo) {
+            max-width: 224px; /* Increased from 187px by 20% */
+            max-height: 295px; /* Increased from 246px by 20% */
+            object-fit: contain;
+            filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.6));
+        }
+
+        /* TOP MIDDLE: TRULY HORIZONTAL SCOREBOARD */
+        /* TOP MIDDLE: DYNAMIC HORIZONTAL SCOREBOARD - SLIGHTLY LOWER */
+        .scoreboard {
+            position: absolute !important;
+            top: 3.5vh !important; /* Moved down from 2vh */
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            background: linear-gradient(135deg, rgba(0,10,20,0.95) 0%, rgba(5,15,25,0.95) 100%);
+            border: 3px solid var(--primary-pink);
             border-radius: 15px;
-            padding: 20px 40px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            padding: 12px 24px; /* Reduced from 18px 30px */
+            box-shadow: 0 8px 32px rgba(255,107,157,0.3);
             backdrop-filter: blur(10px);
-            transition: all 0.5s ease;
+            z-index: 100;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            flex-direction: row !important;
+            gap: 30px; /* Increased gap for better spacing */
+            font-family: 'AcuminVariable', sans-serif;
+            color: #FFFFFF;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            min-width: 50vw; /* Dynamic minimum width */
+            max-width: 75vw; /* Maximum width constraint */
+            min-height: 4vh; /* Reduced from 6.5vh */
+            max-height: 5.5vh; /* Reduced from 8.3vh */
         }
 
-        .scoreboard-content {
-            display: flex;
-            align-items: center;
-            gap: 40px;
-            min-width: 400px;
-        }
-
-        .team {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
+        /* TEAM 1 SECTION (LEFT SIDE) - CENTERED LAYOUT */
+        .team1-section {
+            display: flex !important;
+            align-items: center !important;
+            gap: 20px;
             flex: 1;
+            justify-content: center !important; /* Changed to center */
+            flex-direction: row !important;
+        }
+
+        /* TEAM 2 SECTION (RIGHT SIDE) - CENTERED LAYOUT */
+        .team2-section {
+            display: flex !important;
+            align-items: center !important;
+            gap: 20px;
+            flex: 1;
+            justify-content: center !important; /* Changed to center */
+            flex-direction: row !important;
+        }
+
+        /* TEAM 2 SECTION (RIGHT SIDE) - CENTERED LAYOUT */
+        .team2-section {
+            display: flex !important;
+            align-items: center !important;
+            gap: 20px;
+            flex: 1;
+            justify-content: center !important; /* Changed to center */
+            flex-direction: row !important;
+        }
+
+        /* SCORE DISPLAYS - 1920x1080 OPTIMIZED */
+        .team1-score, .team2-score {
+            font-family: 'DayPosterBlack', sans-serif;
+            font-size: 40px;
+            font-weight: bold;
+            color: var(--primary-yellow);
+            background: rgba(255,212,61,0.1);
+            border: 2px solid var(--primary-yellow);
+            border-radius: 8px;
+            padding: 10px 18px;
+            min-width: 70px;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            line-height: 1;
+        }
+
+        /* PLAYER NAMES - PERFECTLY CENTERED */
+        .team1-players, .team2-players {
+            font-family: 'AcuminVariable', sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            color: #FFFFFF;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            letter-spacing: 0.3px;
+            text-align: center !important; /* Force center alignment */
+            line-height: 1.2;
+            min-width: 200px;
+            max-width: 320px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* Better spacing for widescreen */
+            padding: 6px 12px;
+            /* Allow text wrapping for long names */
+            white-space: normal;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        /* SETS WON - 1920x1080 OPTIMIZED */
+        .team1-sets, .team2-sets {
+            font-family: 'DayPosterBlack', sans-serif;
+            font-size: 22px;
+            font-weight: bold;
+            color: var(--primary-pink);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        /* CENTER SEPARATOR - BETTER POSITIONED */
+        .separator {
+            font-family: 'DayPosterBlack', sans-serif;
+            font-size: 36px; /* Increased from 32px */
+            color: var(--primary-yellow);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            margin: 0 25px; /* Increased from 20px */
+            align-self: center;
+        }
+
+        /* Hide legacy elements */
+        .team-section {
+            display: none !important;
+        }
+
+        .score-display, .team-names-display, .sets-display {
+            display: none !important;
+        }
+
+        .team-names-display {
+            font-family: 'AcuminVariable', sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFFFFF;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            letter-spacing: 0.3px;
+            text-align: center;
+            white-space: nowrap;
+            max-width: 200px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sets-display {
+            font-family: 'AcuminVariable', sans-serif;
+            font-size: 14px;
+            color: var(--primary-pink);
+            font-weight: bold;
+            text-align: center;
+            margin-left: 8px;
+        }
+
+        /* Hide old elements */
+        .team {
+            display: none;
+        }
+
+        .scores-container {
+            display: none;
         }
 
         .team-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #FFD700; /* Gold for team names */
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-            min-height: 22px; /* Prevent layout shift */
+            display: none;
         }
 
-        .player-names {
-            font-size: 14px;
-            color: #E0E0E0;
-            text-align: center;
-            line-height: 1.2;
-            display: none; /* Hidden by default */
+        .team-info, .score-sets-container, .score-separator {
+            display: none;
         }
 
-        .team-score {
-            font-size: 48px;
-            font-weight: bold;
-            color: #FFFFFF;
-            text-shadow: 3px 3px 6px rgba(0,0,0,0.8);
-            min-width: 80px;
-            text-align: center;
+        .team-crest {
+            display: none;
         }
 
-        .score-separator {
-            font-size: 36px;
-            color: #888;
-            margin: 0 20px;
-        }
-
-        /*
-        SET SCORES DISPLAY
-        Shows underneath main scoreboard when relevant
-        */
-        .set-scores {
+        .set-info {
             position: absolute;
-            top: 120px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.7);
-            border-radius: 10px;
-            padding: 10px 20px;
-            display: none; /* Show only when sets are being tracked */
+            top: 5vh;
+            left: 2vw;
+            background: rgba(0,0,0,0.8);
+            border: 1px solid var(--primary-blue);
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 9px;
+            color: #E0E0E0;
+            display: none;
         }
 
-        .set-scores-content {
+        .set-scores {
             display: flex;
-            gap: 15px;
-            align-items: center;
-            font-size: 14px;
+            gap: 4px;
+            margin-top: 4px;
         }
 
         .set-score {
-            color: #E0E0E0;
+            background: rgba(255,255,255,0.1);
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-size: 8px;
+            min-width: 16px;
+            text-align: center;
         }
 
         .set-score.current {
-            color: #FFD700;
+            background: var(--primary-pink);
+            color: white;
             font-weight: bold;
         }
 
-        /*
-        TOURNAMENT INFO
-        Bottom left corner - context information
-        */
+        /* BOTTOM LEFT: LARGER HOST LOGOS (NO BACKGROUND) */
+        /* BOTTOM LEFT: HOST LOGOS - ALIGNED WITH SPONSORS */
+        .host-logos {
+            position: absolute;
+            bottom: 2vh; /* Aligned with sponsors */
+            left: 2vw;
+            text-align: center;
+            transform: scale(1.59); /* Increased from 1.38 by 15% for SDFTV logo */
+            transform-origin: bottom left;
+        }
+
+        .host-text {
+            font-family: 'DayPosterBlack', sans-serif;
+            font-size: 16px; /* Reduced from 22px */
+            font-weight: bold;
+            color: #FFFFFF;
+            margin-bottom: 16px; /* Matched to sponsors spacing */
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .logos-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 29px; /* Keep existing gap */
+        }
+
+        .host-logo {
+            max-width: 168px; /* Increased from 140px by 20% */
+            max-height: 114px; /* Increased from 95px by 20% */
+            object-fit: contain;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.6));
+        }
+
+        /* TOP RIGHT: TOURNAMENT INFO (SLIGHTLY LOWER) */
         .tournament-info {
             position: absolute;
-            bottom: 30px;
-            left: 30px;
-            background: rgba(0,0,0,0.8);
-            border-left: 4px solid #FFD700;
-            border-radius: 8px;
-            padding: 15px 20px;
-            max-width: 300px;
+            top: 3.5vh; /* Moved down from 2vh */
+            right: 2vw;
+            background: linear-gradient(135deg, rgba(0,10,20,0.95) 0%, rgba(5,15,25,0.95) 100%); /* Same as scoreboard */
+            border: 3px solid var(--primary-pink); /* Same as scoreboard */
+            border-radius: 18px; /* Increased from 15px by 20% */
+            padding: 22px 26px; /* Increased from 18px 22px by 20% */
+            max-width: 336px; /* Increased from 280px by 20% */
+            color: white;
+            box-shadow: 0 8px 32px rgba(255,107,157,0.3); /* Same as scoreboard */
+            backdrop-filter: blur(10px); /* Same as scoreboard */
         }
 
-        .tournament-name {
-            font-size: 16px;
+        .tournament-division {
+            font-family: 'DayPosterBlack', Arial, sans-serif;
+            font-size: 19px; /* Increased from 16px by 20% */
             font-weight: bold;
-            color: #FFD700;
-            margin-bottom: 5px;
+            margin-bottom: 7px; /* Increased from 6px by 20% */
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
 
-        .tournament-round {
-            font-size: 14px;
-            color: #E0E0E0;
+        .tournament-details {
+            font-family: 'AcuminVariable', sans-serif;
+            font-size: 14px; /* Increased from 12px by 20% */
+            line-height: 1.3;
+            opacity: 0.95;
         }
 
-        /*
-        REPLAY INDICATOR
-        Center screen, attention-grabbing
-        */
+        .tournament-location {
+            font-size: 12px; /* Increased from 10px by 20% */
+            opacity: 0.8;
+            margin-top: 5px; /* Increased from 4px by 20% */
+            font-style: italic;
+        }
+
+        /* BOTTOM RIGHT: SPONSORS - NO BACKGROUND, INCREASED BY 20% MORE */
+        .sponsors-container {
+            position: absolute;
+            bottom: 2vh;
+            right: 2vw;
+            /* background: removed */
+            /* border: removed */
+            /* border-radius: removed */
+            padding: 26px; /* Increased from 22px by 20% */
+            text-align: center;
+            min-width: 256px; /* Increased from 213px by 20% */
+            min-height: 204px; /* Increased from 170px by 20% */
+            /* box-shadow: removed */
+        }
+
+        .sponsors-title {
+            font-family: 'DayPosterBlack', Arial, sans-serif;
+            font-size: 30px; /* Increased from 25px by 20% */
+            font-weight: bold;
+            color: #FFFFFF; /* Changed to white since no background */
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8); /* Added shadow for visibility */
+            margin-bottom: 19px; /* Increased from 16px by 20% */
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .sponsor-logo {
+            max-width: 187px; /* Increased from 156px by 20% */
+            max-height: 120px; /* Increased from 100px by 20% */
+            object-fit: contain;
+            transition: opacity 0.5s ease-in-out;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.6)); /* Added shadow for visibility */
+        }
+
+        /* CENTER OVERLAYS: REPLAY AND RANKINGS */
         .replay-indicator {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #FF6B6B 0%, #EE5A52 100%);
+            background: linear-gradient(135deg, var(--primary-pink) 0%, var(--primary-orange) 100%);
             color: white;
-            padding: 30px 60px;
+            padding: 25px 50px;
             border-radius: 20px;
-            font-size: 36px;
+            font-family: 'DayPosterBlack', Arial, sans-serif;
+            font-size: 32px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 2px;
-            box-shadow: 0 10px 40px rgba(255,107,107,0.6);
+            box-shadow: 0 12px 40px rgba(255,107,157,0.6);
             border: 3px solid rgba(255,255,255,0.3);
             display: none;
             animation: replayPulse 1.5s infinite;
@@ -184,43 +429,41 @@
         @keyframes replayPulse {
             0% { 
                 transform: translate(-50%, -50%) scale(1);
-                box-shadow: 0 10px 40px rgba(255,107,107,0.6);
+                box-shadow: 0 12px 40px rgba(255,107,157,0.6);
             }
             50% { 
                 transform: translate(-50%, -50%) scale(1.05);
-                box-shadow: 0 15px 50px rgba(255,107,107,0.8);
+                box-shadow: 0 16px 50px rgba(255,107,157,0.8);
             }
             100% { 
                 transform: translate(-50%, -50%) scale(1);
-                box-shadow: 0 10px 40px rgba(255,107,107,0.6);
+                box-shadow: 0 12px 40px rgba(255,107,157,0.6);
             }
         }
 
-        /*
-        RANKINGS TABLE
-        Right side of screen, tournament context
-        */
         .rankings-container {
             position: absolute;
-            top: 100px;
-            right: 30px;
-            background: rgba(0,0,0,0.9);
-            border: 2px solid #FFD700;
-            border-radius: 15px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, var(--dark-bg) 0%, rgba(0,0,0,0.95) 100%);
+            border: 4px solid var(--primary-yellow);
+            border-radius: 18px;
             padding: 25px;
-            max-width: 350px;
+            max-width: 380px;
             display: none;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            box-shadow: 0 12px 50px rgba(0,0,0,0.8);
         }
 
         .rankings-title {
+            font-family: 'DayPosterBlack', Arial, sans-serif;
             font-size: 20px;
             font-weight: bold;
-            color: #FFD700;
+            color: var(--primary-yellow);
             text-align: center;
             margin-bottom: 20px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.5px;
         }
 
         .rankings-table {
@@ -229,108 +472,143 @@
         }
 
         .rankings-table th {
-            background: rgba(255,215,0,0.2);
-            color: #FFD700;
-            padding: 12px 15px;
+            background: var(--primary-pink);
+            color: white;
+            padding: 10px 12px;
             text-align: left;
+            font-family: 'AcuminVariable', sans-serif;
             font-weight: bold;
-            border-bottom: 2px solid #FFD700;
-            font-size: 14px;
+            border-bottom: 2px solid var(--primary-yellow);
+            font-size: 12px;
             text-transform: uppercase;
         }
 
         .rankings-table td {
-            padding: 10px 15px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 8px 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
             color: #E0E0E0;
-            font-size: 14px;
+            font-family: 'AcuminVariable', sans-serif;
+            font-size: 12px;
         }
 
         .rankings-table tr:nth-child(even) {
             background: rgba(255,255,255,0.05);
         }
 
-        .rankings-table tr:hover {
-            background: rgba(255,215,0,0.1);
-        }
-
         /* Highlight top 3 positions */
-        .rankings-table .position-1 td:first-child {
-            color: #FFD700;
-            font-weight: bold;
+        .rankings-table .position-1 {
+            background: linear-gradient(90deg, var(--primary-yellow), transparent);
         }
 
-        .rankings-table .position-2 td:first-child {
-            color: #C0C0C0;
-            font-weight: bold;
+        .rankings-table .position-2 {
+            background: linear-gradient(90deg, var(--primary-blue), transparent);
         }
 
-        .rankings-table .position-3 td:first-child {
-            color: #CD7F32;
-            font-weight: bold;
+        .rankings-table .position-3 {
+            background: linear-gradient(90deg, var(--primary-orange), transparent);
         }
 
-        /*
-        FADE IN/OUT ANIMATIONS
-        Smooth transitions for better viewing experience
-        */
+        /* ANIMATIONS */
         .fade-in {
-            animation: fadeIn 0.5s ease-in;
+            animation: fadeIn 0.6s ease-in;
         }
 
         .fade-out {
-            animation: fadeOut 0.5s ease-out;
+            animation: fadeOut 0.6s ease-out;
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
         }
 
         @keyframes fadeOut {
-            from { opacity: 1; transform: translateY(0); }
-            to { opacity: 0; transform: translateY(-20px); }
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-20px) scale(0.95); }
         }
 
-        /*
-        RESPONSIVE DESIGN
-        Ensure overlay works on different screen sizes
-        */
-        @media (max-width: 768px) {
+        /* RESPONSIVE DESIGN */
+        @media (max-width: 1280px) {
             .scoreboard {
-                top: 20px;
-                padding: 15px 25px;
+                padding: 14px 18px;
+                min-width: 500px;
+                gap: 16px;
             }
             
-            .scoreboard-content {
-                gap: 20px;
-                min-width: 300px;
+            .open-logo-img {
+                width: 50px;
+                height: 65px;
             }
             
             .team-score {
-                font-size: 36px;
+                font-size: 28px;
+                min-width: 45px;
             }
             
-            .team-name {
-                font-size: 16px;
+            .player-names {
+                font-size: 13px;
+                max-width: 130px;
             }
             
-            .rankings-container {
-                max-width: 280px;
-                right: 15px;
-                padding: 20px;
+            .team-sets {
+                font-size: 11px;
+                min-width: 18px;
             }
             
-            .tournament-info {
-                bottom: 20px;
-                left: 20px;
-                padding: 12px 15px;
+            .team-crest {
+                width: 22px;
+                height: 22px;
+                font-size: 9px;
+            }
+            
+            .host-text {
+                font-size: 22px;
+            }
+            
+            .host-logo {
+                max-width: 95px;
+                max-height: 63px;
+            }
+            
+            .sponsors-container {
+                padding: 16px;
+                min-width: 120px;
+                min-height: 95px;
+            }
+            
+            .sponsors-title {
+                font-size: 14px;
+            }
+            
+            .sponsor-logo {
+                max-width: 88px;
+                max-height: 56px;
             }
         }
 
-        /*
-        UTILITY CLASSES
-        */
+        @media (max-width: 800px) {
+            .scoreboard {
+                min-width: 400px;
+                gap: 12px;
+            }
+            
+            .team-score {
+                font-size: 24px;
+                min-width: 40px;
+            }
+            
+            .player-names {
+                font-size: 12px;
+                max-width: 100px;
+            }
+            
+            .open-logo-img {
+                width: 40px;
+                height: 55px;
+            }
+        }
+
+        /* UTILITY CLASSES */
         .hidden {
             display: none !important;
         }
@@ -343,16 +621,20 @@
             display: flex !important;
         }
 
-        /*
-        LOADING STATE
-        */
+        /* LOADING STATE */
         .loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: rgba(255,255,255,0.7);
-            font-size: 18px;
+            color: var(--primary-pink);
+            font-family: 'AcuminVariable', sans-serif;
+            font-size: 16px;
+            text-align: center;
+            background: var(--dark-bg);
+            padding: 18px 25px;
+            border-radius: 12px;
+            border: 2px solid var(--primary-pink);
         }
     </style>
 </head>
@@ -360,56 +642,93 @@
     <div class="overlay-container">
         <!-- LOADING STATE -->
         <div class="loading" id="loading-indicator">
-            🔄 Connecting to referee control...
+            🔄 Connecting to San Diego Footvolley Open control...
         </div>
 
-        <!-- MAIN SCOREBOARD -->
+        <!-- TOP LEFT: OPEN LOGO + NFA LOGO -->
+        <div class="open-logo-topleft">
+            <img src="/logos/OPEN_SDFTV_white_logo.png" alt="OPEN SDFTV" class="open-logo" />
+            <img src="/logos/NFA_logo.png" alt="NFA" class="nfa-logo" />
+        </div>
+
+        <!-- CENTER: HORIZONTAL SCOREBOARD -->
+        <!-- TEAM 1 LEFT | SEPARATOR | TEAM 2 RIGHT -->
         <div class="scoreboard" id="scoreboard">
-            <div class="scoreboard-content">
-                <!-- TEAM 1 -->
+            <!-- TEAM 1 SECTION (LEFT) -->
+            <div class="team1-section">
+                <span class="team1-score" id="team1-score">0</span>
+                <span class="team1-players" id="team1-players">Player 1A<br><span style="font-size:18px;">&</span><br>Player 1B</span>
+                <span class="team1-sets" id="team1-sets">(0)</span>
+            </div>
+            
+            <!-- CENTER SEPARATOR -->
+            <span class="separator">|</span>
+            
+            <!-- TEAM 2 SECTION (RIGHT) -->
+            <div class="team2-section">
+                <span class="team2-sets" id="team2-sets">(0)</span>
+                <span class="team2-players" id="team2-players">Player 2A<br><span style="font-size:18px;">&</span><br>Player 2B</span>
+                <span class="team2-score" id="team2-score">0</span>
+            </div>
+        </div>
+
+        <!-- LEGACY STRUCTURE (HIDDEN) -->
+        <div style="display: none;">
+            <div class="scores-container">
                 <div class="team">
-                    <div class="team-name" id="team1-name">Team 1</div>
-                    <div class="player-names" id="team1-players">
-                        <div id="team1-player1">Player 1A</div>
-                        <div id="team1-player2">Player 1B</div>
+                    <div class="team-info">
+                        <div class="team-crest" id="team1-crest">1</div>
+                        <div class="team-name" id="team1-name">TEAM1</div>
                     </div>
-                    <div class="team-score" id="team1-score">0</div>
+                    <div class="score-sets-container"></div>
                 </div>
-
-                <!-- SEPARATOR -->
-                <div class="score-separator">-</div>
-
-                <!-- TEAM 2 -->
                 <div class="team">
-                    <div class="team-name" id="team2-name">Team 2</div>
-                    <div class="player-names" id="team2-players">
-                        <div id="team2-player1">Player 2A</div>
-                        <div id="team2-player2">Player 2B</div>
+                    <div class="team-info">
+                        <div class="team-crest" id="team2-crest">2</div>
+                        <div class="team-name" id="team2-name">TEAM2</div>
                     </div>
-                    <div class="team-score" id="team2-score">0</div>
+                    <div class="score-sets-container"></div>
                 </div>
             </div>
         </div>
 
-        <!-- SET SCORES -->
-        <div class="set-scores" id="set-scores">
-            <div class="set-scores-content" id="set-scores-content">
+        <!-- SET INFO (SEPARATE ELEMENT) -->
+        <div class="set-info" id="set-info">
+            <div id="set-current">Set 1 of 3</div>
+            <div class="set-scores" id="set-scores-display">
                 <!-- Set scores will be populated here -->
             </div>
         </div>
 
-        <!-- TOURNAMENT INFO -->
-        <div class="tournament-info" id="tournament-info">
-            <div class="tournament-name" id="tournament-name">Footvolley Tournament 2025</div>
-            <div class="tournament-round" id="tournament-round">Quarter Finals - Match 1</div>
+        <!-- BOTTOM LEFT: HOST LOGOS (SDFTV ONLY) -->
+        <div class="host-logos" id="host-logos">
+            <div class="host-text">Hosted by</div>
+            <div class="logos-container">
+                <img src="/logos/SDFTV logo.png" alt="San Diego Footvolley" class="host-logo">
+            </div>
         </div>
 
-        <!-- REPLAY INDICATOR -->
+        <!-- TOP RIGHT: TOURNAMENT INFO -->
+        <div class="tournament-info" id="tournament-info">
+            <div class="tournament-division" id="tournament-division">OPEN DIVISION</div>
+            <div class="tournament-details" id="tournament-details">
+                <div id="tournament-round">Quarter Finals - Match 1</div>
+                <div class="tournament-location" id="tournament-location">Mission Bay, San Diego - CA</div>
+            </div>
+        </div>
+
+        <!-- BOTTOM RIGHT: SPONSORS -->
+        <div class="sponsors-container" id="sponsors-container">
+            <div class="sponsors-title">Sponsors</div>
+            <img src="/sponsors/plex-logo.svg" alt="Sponsor" class="sponsor-logo" id="sponsor-logo">
+        </div>
+
+        <!-- CENTER: REPLAY INDICATOR -->
         <div class="replay-indicator" id="replay-indicator">
             🔄 Replay
         </div>
 
-        <!-- RANKINGS TABLE -->
+        <!-- CENTER: RANKINGS TABLE -->
         <div class="rankings-container" id="rankings-container">
             <div class="rankings-title">🏆 Tournament Rankings</div>
             <table class="rankings-table">
@@ -432,13 +751,9 @@
     <script src="/socket.io/socket.io.js"></script>
     <script>
         /**
-         * FOOTVOLLEY OVERLAY JAVASCRIPT
+         * SAN DIEGO FOOTVOLLEY OPEN - OVERLAY JAVASCRIPT
          * 
-         * This script handles:
-         * 1. Real-time updates from referee control panel
-         * 2. Smooth animations and transitions
-         * 3. Automatic showing/hiding of different elements
-         * 4. Fetching tournament rankings from Google Sheets
+         * Handles real-time updates with tournament branding and sponsor rotation
          */
         
         // Connect to server for real-time updates
@@ -449,41 +764,50 @@
             loading: document.getElementById('loading-indicator'),
             scoreboard: document.getElementById('scoreboard'),
             
-            // Team 1 elements
-            team1Name: document.getElementById('team1-name'),
-            team1Score: document.getElementById('team1-score'),
+            // Team elements - updated for player names
             team1Players: document.getElementById('team1-players'),
-            team1Player1: document.getElementById('team1-player1'),
-            team1Player2: document.getElementById('team1-player2'),
+            team1Score: document.getElementById('team1-score'),
+            team1Sets: document.getElementById('team1-sets'),
+            team1Name: document.getElementById('team1-name'),
             
-            // Team 2 elements
-            team2Name: document.getElementById('team2-name'),
-            team2Score: document.getElementById('team2-score'),
             team2Players: document.getElementById('team2-players'),
-            team2Player1: document.getElementById('team2-player1'),
-            team2Player2: document.getElementById('team2-player2'),
+            team2Score: document.getElementById('team2-score'),
+            team2Sets: document.getElementById('team2-sets'),
+            team2Name: document.getElementById('team2-name'),
             
-            // Other elements
-            setScores: document.getElementById('set-scores'),
-            setScoresContent: document.getElementById('set-scores-content'),
-            tournamentInfo: document.getElementById('tournament-info'),
-            tournamentName: document.getElementById('tournament-name'),
+            // Tournament elements
+            setInfo: document.getElementById('set-info'),
+            setCurrent: document.getElementById('set-current'),
+            setScoresDisplay: document.getElementById('set-scores-display'),
+            tournamentDivision: document.getElementById('tournament-division'),
+            tournamentDetails: document.getElementById('tournament-details'),
             tournamentRound: document.getElementById('tournament-round'),
+            tournamentLocation: document.getElementById('tournament-location'),
+            
+            // Interactive elements
             replayIndicator: document.getElementById('replay-indicator'),
             rankingsContainer: document.getElementById('rankings-container'),
-            rankingsContent: document.getElementById('rankings-content')
+            rankingsContent: document.getElementById('rankings-content'),
+            sponsorLogo: document.getElementById('sponsor-logo'),
+            sponsorsContainer: document.getElementById('sponsors-container')
         };
         
-        // Store current game state
+        // Store current game state and sponsors
         let currentGameState = {};
+        let sponsors = [];
+        let currentSponsorIndex = 0;
+        let sponsorRotationInterval;
         
         /**
          * CONNECTION HANDLING
          */
         socket.on('connect', () => {
-            console.log('✅ Overlay connected to server');
+            console.log('✅ San Diego Footvolley Open overlay connected');
             elements.loading.style.display = 'none';
             elements.scoreboard.style.display = 'block';
+            
+            // Load sponsors and start rotation
+            loadSponsors();
         });
         
         socket.on('disconnect', () => {
@@ -493,38 +817,88 @@
         });
         
         /**
+         * TOURNAMENT INFO UPDATES
+         * Handle tournament info updates from control panel
+         */
+        socket.on('tournamentInfoUpdate', (data) => {
+            console.log('🏆 Tournament info update received:', data);
+            updateTournamentDisplay(data);
+        });
+        
+        /**
+         * SETS MODE UPDATES
+         * Handle sets mode toggle from control panel
+         */
+        socket.on('setsModeUpdate', (data) => {
+            console.log('📊 Sets mode update received:', data);
+            updateSetsDisplay(data.enabled);
+        });
+        
+        /**
          * GAME STATE UPDATES
-         * Main function that updates the overlay when referee makes changes
          */
         socket.on('gameStateUpdate', (gameState) => {
-            console.log('📊 Overlay received game state update:', gameState);
+            console.log('📊 Overlay received update:', gameState);
             currentGameState = gameState;
             updateOverlay();
         });
         
         /**
+         * UPDATE TOURNAMENT DISPLAY
+         * Apply tournament info updates from control panel
+         */
+        function updateTournamentDisplay(data) {
+            const tournamentDivision = document.getElementById('tournament-division');
+            const tournamentRound = document.getElementById('tournament-round');
+            const tournamentLocation = document.getElementById('tournament-location');
+            
+            if (tournamentDivision) {
+                tournamentDivision.textContent = data.division || 'OPEN DIVISION';
+            }
+            
+            if (tournamentRound) {
+                tournamentRound.textContent = `${data.round || 'Quarter Finals'} - Match ${data.matchNumber || '1'}`;
+            }
+            
+            if (tournamentLocation) {
+                tournamentLocation.textContent = data.location || 'Mission Bay, San Diego - CA';
+            }
+            
+            console.log('🏆 Tournament display updated');
+        }
+        
+        /**
+         * UPDATE SETS DISPLAY
+         * Show/hide sets information based on sets mode
+         */
+        function updateSetsDisplay(enabled) {
+            const team1Sets = document.getElementById('team1-sets');
+            const team2Sets = document.getElementById('team2-sets');
+            const matchInfoMini = document.querySelector('.match-info-mini');
+            
+            if (team1Sets && team2Sets) {
+                team1Sets.style.display = enabled ? 'block' : 'none';
+                team2Sets.style.display = enabled ? 'block' : 'none';
+            }
+            
+            if (matchInfoMini) {
+                matchInfoMini.style.display = enabled ? 'block' : 'none';
+            }
+            
+            console.log('📊 Sets display:', enabled ? 'shown' : 'hidden');
+        }
+        
+        /**
          * UPDATE OVERLAY DISPLAY
-         * This function updates all visual elements based on current game state
          */
         function updateOverlay() {
             const state = currentGameState;
             
-            // Update team names and scores
             updateTeamInfo(state);
-            
-            // Update set scores if being tracked
             updateSetScores(state);
-            
-            // Update tournament information
             updateTournamentInfo(state);
-            
-            // Handle replay indicator
             handleReplayDisplay(state);
-            
-            // Handle rankings display
             handleRankingsDisplay(state);
-            
-            // Handle player names vs team names
             handlePlayerNamesDisplay(state);
         }
         
@@ -532,26 +906,62 @@
          * UPDATE TEAM INFORMATION
          */
         function updateTeamInfo(state) {
+            const scoreboard = document.querySelector('.scoreboard');
+            let hasStackedNames = false;
+            
             if (state.team1) {
-                elements.team1Name.textContent = state.team1.name || 'Team 1';
-                elements.team1Score.textContent = state.team1.score || 0;
-                
-                // Update player names
-                if (state.team1.players) {
-                    elements.team1Player1.textContent = state.team1.players[0] || '';
-                    elements.team1Player2.textContent = state.team1.players[1] || '';
+                // Display player names instead of team name
+                if (state.team1.players && state.team1.players.length >= 2) {
+                    const player1 = state.team1.players[0] || 'Player 1';
+                    const player2 = state.team1.players[1] || 'Player 2';
+                    
+                    // Format names with line breaks if they're long
+                    const combinedLength = player1.length + player2.length;
+                    if (combinedLength > 20) {
+                        elements.team1Players.innerHTML = `${player1}<br><span style="font-size:18px;">&</span><br>${player2}`;
+                        hasStackedNames = true;
+                    } else {
+                        elements.team1Players.textContent = `${player1} & ${player2}`;
+                    }
+                } else {
+                    elements.team1Players.textContent = state.team1.name || 'Team 1';
                 }
+                
+                elements.team1Score.textContent = state.team1.score || 0;
+                elements.team1Sets.textContent = `(${state.team1.setsWon || 0})`;
             }
             
             if (state.team2) {
-                elements.team2Name.textContent = state.team2.name || 'Team 2';
-                elements.team2Score.textContent = state.team2.score || 0;
-                
-                // Update player names
-                if (state.team2.players) {
-                    elements.team2Player1.textContent = state.team2.players[0] || '';
-                    elements.team2Player2.textContent = state.team2.players[1] || '';
+                // Display player names instead of team name
+                if (state.team2.players && state.team2.players.length >= 2) {
+                    const player1 = state.team2.players[0] || 'Player 3';
+                    const player2 = state.team2.players[1] || 'Player 4';
+                    
+                    // Format names with line breaks if they're long
+                    const combinedLength = player1.length + player2.length;
+                    if (combinedLength > 20) {
+                        elements.team2Players.innerHTML = `${player1}<br><span style="font-size:18px;">&</span><br>${player2}`;
+                        hasStackedNames = true;
+                    } else {
+                        elements.team2Players.textContent = `${player1} & ${player2}`;
+                    }
+                } else {
+                    elements.team2Players.textContent = state.team2.name || 'Team 2';
                 }
+                
+                elements.team2Score.textContent = state.team2.score || 0;
+                elements.team2Sets.textContent = `(${state.team2.setsWon || 0})`;
+            }
+            
+            // Adjust scoreboard size based on whether names are stacked
+            if (hasStackedNames) {
+                scoreboard.style.minHeight = '5.5vh'; /* Reduced from 8vh */
+                scoreboard.style.maxHeight = '7vh'; /* Reduced from 10vh */
+                scoreboard.style.minWidth = '55vw';
+            } else {
+                scoreboard.style.minHeight = '4vh'; /* Reduced from 6.5vh */
+                scoreboard.style.maxHeight = '5.5vh'; /* Reduced from 8.3vh */
+                scoreboard.style.minWidth = '50vw';
             }
         }
         
@@ -560,23 +970,25 @@
          */
         function updateSetScores(state) {
             if (!state.setScores || state.currentSet === 1) {
-                elements.setScores.style.display = 'none';
+                elements.setInfo.style.display = 'none';
                 return;
             }
             
-            let html = '<span>Sets: </span>';
+            elements.setCurrent.textContent = `Set ${state.currentSet} of ${state.maxSets}`;
+            
+            let html = '';
             for (let i = 0; i < state.maxSets; i++) {
                 const team1Score = state.setScores.team1[i] || 0;
                 const team2Score = state.setScores.team2[i] || 0;
                 const isCurrentSet = (i + 1) === state.currentSet;
                 
                 if (team1Score > 0 || team2Score > 0 || isCurrentSet) {
-                    html += `<span class="set-score ${isCurrentSet ? 'current' : ''}">${team1Score}-${team2Score}</span>`;
+                    html += `<div class="set-score ${isCurrentSet ? 'current' : ''}">${team1Score}-${team2Score}</div>`;
                 }
             }
             
-            elements.setScoresContent.innerHTML = html;
-            elements.setScores.style.display = 'block';
+            elements.setScoresDisplay.innerHTML = html;
+            elements.setInfo.style.display = 'block';
         }
         
         /**
@@ -584,11 +996,13 @@
          */
         function updateTournamentInfo(state) {
             if (state.tournament) {
-                elements.tournamentName.textContent = state.tournament.name || 'Footvolley Tournament';
+                elements.tournamentDivision.textContent = state.tournament.division || 'Open Division';
                 
                 const roundText = state.tournament.round || 'Match';
                 const matchNumber = state.tournament.matchNumber || 1;
                 elements.tournamentRound.textContent = `${roundText} - Match ${matchNumber}`;
+                
+                elements.tournamentLocation.textContent = state.tournament.location || 'Mission Bay, San Diego - CA';
             }
         }
         
@@ -600,7 +1014,6 @@
                 elements.replayIndicator.classList.add('visible');
                 elements.replayIndicator.classList.add('fade-in');
                 
-                // Auto-hide after animation
                 setTimeout(() => {
                     elements.replayIndicator.classList.remove('visible');
                     elements.replayIndicator.classList.remove('fade-in');
@@ -623,24 +1036,92 @@
          * HANDLE PLAYER NAMES VS TEAM NAMES
          */
         function handlePlayerNamesDisplay(state) {
-            if (state.showPlayerNames) {
-                // Show player names, hide team names
-                elements.team1Name.style.display = 'none';
-                elements.team2Name.style.display = 'none';
-                elements.team1Players.style.display = 'block';
-                elements.team2Players.style.display = 'block';
-            } else {
-                // Show team names, hide player names
-                elements.team1Name.style.display = 'block';
-                elements.team2Name.style.display = 'block';
-                elements.team1Players.style.display = 'none';
-                elements.team2Players.style.display = 'none';
+            // Always show player names, never team names in this design
+            elements.team1Players.style.display = 'block';
+            elements.team2Players.style.display = 'block';
+            elements.team1Name.style.display = 'none';
+            elements.team2Name.style.display = 'none';
+        }
+        
+        /**
+         * SPONSOR ROTATION SYSTEM
+         */
+        async function loadSponsors() {
+            try {
+                const response = await fetch('/api/sponsors');
+                const data = await response.json();
+                
+                if (data.sponsors && data.sponsors.length > 0) {
+                    // Filter to only use .png files
+                    sponsors = data.sponsors.filter(sponsor => 
+                        sponsor.endsWith('.png') || sponsor.endsWith('.jpeg')
+                    );
+                    
+                    if (sponsors.length === 0) {
+                        // Fallback to actual sponsor files
+                        sponsors = [
+                            '/sponsors/PLEX_sponsor.png',
+                            '/sponsors/23web_sponsor.png',
+                            '/sponsors/acai_carioca_sponsor.png',
+                            '/sponsors/caffeine_army_sponsor.png',
+                            '/sponsors/ftv_shop_sponsor.png',
+                            '/sponsors/babe_kombucha_sponsor.jpeg'
+                        ];
+                    }
+                    
+                    startSponsorRotation();
+                } else {
+                    // Use actual sponsor files as default
+                    sponsors = [
+                        '/sponsors/PLEX_sponsor.png',
+                        '/sponsors/23web_sponsor.png',
+                        '/sponsors/acai_carioca_sponsor.png',
+                        '/sponsors/caffeine_army_sponsor.png',
+                        '/sponsors/ftv_shop_sponsor.png',
+                        '/sponsors/babe_kombucha_sponsor.jpeg'
+                    ];
+                    startSponsorRotation();
+                }
+            } catch (error) {
+                console.log('⚠️ Could not load sponsors, using defaults');
+                sponsors = [
+                    '/sponsors/PLEX_sponsor.png',
+                    '/sponsors/23web_sponsor.png',
+                    '/sponsors/acai_carioca_sponsor.png'
+                ];
+                elements.sponsorLogo.src = sponsors[0];
             }
+        }
+        
+        function startSponsorRotation() {
+            if (sponsors.length <= 1) return;
+            
+            // Clear any existing interval
+            if (sponsorRotationInterval) {
+                clearInterval(sponsorRotationInterval);
+            }
+            
+            // Start rotating sponsors every 5 seconds
+            sponsorRotationInterval = setInterval(() => {
+                currentSponsorIndex = (currentSponsorIndex + 1) % sponsors.length;
+                
+                // Fade out current sponsor
+                elements.sponsorLogo.style.opacity = '0';
+                
+                // Change sponsor after fade out
+                setTimeout(() => {
+                    elements.sponsorLogo.src = sponsors[currentSponsorIndex];
+                    elements.sponsorLogo.style.opacity = '1';
+                }, 250);
+                
+            }, 5000);
+            
+            // Set initial sponsor
+            elements.sponsorLogo.src = sponsors[0];
         }
         
         /**
          * FETCH AND DISPLAY RANKINGS
-         * Get tournament rankings from Google Sheets and display them
          */
         async function fetchAndDisplayRankings() {
             try {
@@ -651,8 +1132,6 @@
                 
                 if (data.error) {
                     console.log('⚠️ Rankings not available:', data.message);
-                    
-                    // Show placeholder rankings
                     displayPlaceholderRankings();
                     return;
                 }
@@ -663,7 +1142,7 @@
                     displayPlaceholderRankings();
                 }
                 
-                // Show rankings container with animation
+                // Show rankings with animation
                 elements.rankingsContainer.classList.add('visible');
                 elements.rankingsContainer.classList.add('fade-in');
                 
@@ -685,7 +1164,6 @@
         function displayRankings(rankingsData) {
             let html = '';
             
-            // Skip header row and process data
             rankingsData.slice(1).forEach((row, index) => {
                 const position = index + 1;
                 const team = row[0] || `Team ${position}`;
@@ -708,7 +1186,6 @@
         
         /**
          * DISPLAY PLACEHOLDER RANKINGS
-         * Show example rankings when Google Sheets is not available
          */
         function displayPlaceholderRankings() {
             const placeholderData = [
@@ -740,10 +1217,9 @@
          * INITIALIZE OVERLAY
          */
         function initializeOverlay() {
-            console.log('🏐 Footvolley overlay initialized');
+            console.log('🏐 San Diego Footvolley Open overlay initialized');
             console.log('📺 Waiting for referee control updates...');
             
-            // Hide loading indicator after a moment if connection is successful
             setTimeout(() => {
                 if (socket.connected) {
                     elements.loading.style.display = 'none';
@@ -755,14 +1231,12 @@
         // Start the overlay when page loads
         initializeOverlay();
         
-        /**
-         * ERROR HANDLING
-         */
+        // Error handling
         window.addEventListener('error', (e) => {
             console.error('❌ Overlay error:', e.error);
         });
         
-        // Prevent context menu and other interactions
+        // Prevent context menu and interactions
         document.addEventListener('contextmenu', (e) => e.preventDefault());
         document.addEventListener('selectstart', (e) => e.preventDefault());
         document.addEventListener('dragstart', (e) => e.preventDefault());

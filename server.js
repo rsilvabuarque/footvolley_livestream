@@ -17,6 +17,8 @@ const http = require('http');
 const socketIo = require('socket.io');
 const { google } = require('googleapis');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const open = require('open'); // This will automatically open web browser
 require('dotenv').config();
 
@@ -47,12 +49,14 @@ let gameState = {
     team1: { 
         name: 'Team 1', 
         score: 0,
+        setsWon: 0,
         // Player names for more detailed display
         players: ['Player 1A', 'Player 1B']
     },
     team2: { 
         name: 'Team 2', 
         score: 0,
+        setsWon: 0,
         players: ['Player 2A', 'Player 2B']
     },
     
@@ -64,11 +68,13 @@ let gameState = {
         team2: [0, 0, 0]
     },
     
-    // Tournament context
+    // Tournament information
     tournament: {
-        name: 'Footvolley Tournament 2025',
+        name: 'San Diego Footvolley Open 2025',
+        division: 'Open Division', // Open Division, Womens Division, Beginners Division
         round: 'Quarter Finals',
-        matchNumber: 1
+        matchNumber: 1,
+        location: 'Mission Bay, San Diego - CA'
     },
     
     // Display controls
@@ -175,6 +181,59 @@ io.on('connection', (socket) => {
     });
     
     /**
+     * TOURNAMENT INFO UPDATES
+     * Handle tournament info updates from control panel
+     */
+    socket.on('updateTournamentInfo', (data) => {
+        console.log('🏆 Tournament info update:', data);
+        
+        // Update the game state with tournament info
+        gameState.tournament = {
+            division: data.division,
+            location: data.location,
+            round: data.round,
+            matchNumber: data.matchNumber
+        };
+        
+        // Broadcast tournament info update to all overlays
+        io.emit('tournamentInfoUpdate', data);
+    });
+    
+    /**
+     * SETS MODE TOGGLE
+     * Handle enabling/disabling sets mode
+     */
+    socket.on('updateSetsMode', (data) => {
+        console.log('📊 Sets mode update:', data.enabled);
+        
+        // Update the game state
+        gameState.setsEnabled = data.enabled;
+        
+        // If disabling sets, reset sets-related data but maintain structure
+        if (!data.enabled) {
+            gameState.team1.setsWon = 0;
+            gameState.team2.setsWon = 0;
+            gameState.currentSet = 1;
+            gameState.setScores = {
+                team1: [0, 0, 0, 0, 0],
+                team2: [0, 0, 0, 0, 0]
+            };
+        } else {
+            // If enabling sets, ensure proper structure
+            if (!gameState.setScores || !gameState.setScores.team1 || !gameState.setScores.team2) {
+                gameState.setScores = {
+                    team1: [0, 0, 0, 0, 0],
+                    team2: [0, 0, 0, 0, 0]
+                };
+            }
+        }
+        
+        // Broadcast sets mode update to all overlays
+        io.emit('setsModeUpdate', data);
+        io.emit('gameStateUpdate', gameState);
+    });
+    
+    /**
      * REPLAY CONTROLS
      * When referee wants to show "REPLAY" indicator on screen
      */
@@ -228,14 +287,30 @@ io.on('connection', (socket) => {
     socket.on('winSet', (data) => {
         console.log(`🎯 Set ${gameState.currentSet} won by team ${data.team}`);
         
-        // Record set score
+        // Initialize setScores if not exists or if arrays are not properly initialized
+        if (!gameState.setScores || !gameState.setScores.team1 || !gameState.setScores.team2) {
+            gameState.setScores = {
+                team1: [0, 0, 0, 0, 0], // Support up to 5 sets
+                team2: [0, 0, 0, 0, 0]
+            };
+        }
+        
+        // Ensure arrays are long enough
         const setIndex = gameState.currentSet - 1;
+        while (gameState.setScores.team1.length <= setIndex) {
+            gameState.setScores.team1.push(0);
+            gameState.setScores.team2.push(0);
+        }
+        
+        // Record set score
+        gameState.setScores.team1[setIndex] = gameState.team1.score;
+        gameState.setScores.team2[setIndex] = gameState.team2.score;
+        
+        // Update sets won
         if (data.team === 1) {
-            gameState.setScores.team1[setIndex] = gameState.team1.score;
-            gameState.setScores.team2[setIndex] = gameState.team2.score;
+            gameState.team1.setsWon++;
         } else {
-            gameState.setScores.team1[setIndex] = gameState.team1.score;
-            gameState.setScores.team2[setIndex] = gameState.team2.score;
+            gameState.team2.setsWon++;
         }
         
         // Reset scores for next set
@@ -251,6 +326,25 @@ io.on('connection', (socket) => {
     });
     
     /**
+     * TOURNAMENT INFO UPDATES
+     */
+    socket.on('updateTournamentInfo', (data) => {
+        console.log('🏆 Tournament info update:', data);
+        
+        if (data.division) {
+            gameState.tournament.division = data.division;
+        }
+        if (data.round) {
+            gameState.tournament.round = data.round;
+        }
+        if (data.matchNumber) {
+            gameState.tournament.matchNumber = data.matchNumber;
+        }
+        
+        io.emit('gameStateUpdate', gameState);
+    });
+    
+    /**
      * UTILITY FUNCTIONS
      */
     socket.on('resetMatch', () => {
@@ -258,7 +352,9 @@ io.on('connection', (socket) => {
         
         // Reset everything to initial state
         gameState.team1.score = 0;
+        gameState.team1.setsWon = 0;
         gameState.team2.score = 0;
+        gameState.team2.setsWon = 0;
         gameState.currentSet = 1;
         gameState.setScores = {
             team1: [0, 0, 0],
@@ -320,6 +416,30 @@ app.get('/api/rankings', async (req, res) => {
         res.status(500).json({ 
             error: error.message,
             message: 'Failed to fetch rankings from Google Sheets'
+        });
+    }
+});
+
+// Get list of sponsor logos for rotation
+// API endpoint to get sponsor logos
+app.get('/api/sponsors', (req, res) => {
+    try {
+        const sponsorsDir = path.join(__dirname, 'public/sponsors');
+        const sponsors = fs.readdirSync(sponsorsDir)
+            .filter(file => file.endsWith('.png') || file.endsWith('.jpeg') || file.endsWith('.jpg'))
+            .map(file => `/sponsors/${file}`);
+        
+        console.log('📢 Sponsors found:', sponsors);
+        res.json({ sponsors });
+    } catch (error) {
+        console.error('❌ Error reading sponsors directory:', error);
+        res.status(500).json({ 
+            error: 'Could not load sponsors',
+            sponsors: [
+                '/sponsors/PLEX_sponsor.png',
+                '/sponsors/23web_sponsor.png',
+                '/sponsors/acai_carioca_sponsor.png'
+            ]
         });
     }
 });
