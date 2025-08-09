@@ -263,22 +263,16 @@ io.on('connection', (socket) => {
     });
     
     /**
-     * RANKINGS DISPLAY
-     * Show tournament rankings table temporarily
+     * RANKINGS DISPLAY - TEMPORARILY DISABLED
      */
+    /*
     socket.on('toggleRankings', () => {
-        console.log('🏆 Toggling rankings display');
-        gameState.showRankings = !gameState.showRankings;
-        io.emit('gameStateUpdate', gameState);
-        
-        // Auto-hide rankings after 10 seconds if showing
-        if (gameState.showRankings) {
-            setTimeout(() => {
-                gameState.showRankings = false;
-                io.emit('gameStateUpdate', gameState);
-            }, 10000);
-        }
+        console.log('🚫 Rankings display temporarily disabled');
+        // DISABLED FOR TOURNAMENT
+        // gameState.showRankings = !gameState.showRankings;
+        // io.emit('gameStateUpdate', gameState);
     });
+    */
     
     /**
      * SET MANAGEMENT
@@ -374,19 +368,21 @@ io.on('connection', (socket) => {
     });
     
     /**
-     * SIMPLIFIED REPLAY SYSTEM EVENTS
+     * SIMPLIFIED REPLAY SYSTEM EVENTS - TEMPORARILY DISABLED
      */
+    /*
     socket.on('triggerReplay', () => {
-        console.log('🎬 Simple replay triggered');
+        console.log('🚫 Replay functionality temporarily disabled');
         // Broadcast to all overlays to start replay sequence
-        io.emit('trigger-replay');
+        // io.emit('trigger-replay');
     });
     
     socket.on('skipReplay', () => {
-        console.log('⏭️ Skip replay triggered');
+        console.log('🚫 Replay functionality temporarily disabled');
         // Broadcast to all overlays to skip replay
-        io.emit('skip-replay');
+        // io.emit('skip-replay');
     });
+    */
     
     socket.on('obs-change-scene', (sceneName) => {
         console.log('🎬 OBS Scene change requested:', sceneName);

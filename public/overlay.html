@@ -1373,10 +1373,11 @@
             // Trigger replay button
             elements.startReplayBtn.addEventListener('click', triggerReplaySequence);
             
-            // Skip replay button
-            elements.skipReplayBtn.addEventListener('click', skipToLive);
+            // Skip replay button - DISABLED
+            // elements.skipReplayBtn.addEventListener('click', skipToLive);
             
-            // Listen for replay trigger from control panel
+            // Listen for replay trigger from control panel - DISABLED FOR TOURNAMENT
+            /*
             socket.on('trigger-replay', () => {
                 triggerReplaySequence();
             });
@@ -1385,152 +1386,65 @@
             socket.on('skip-replay', () => {
                 skipToLive();
             });
+            */
         }
+        
+        /*
+        // REPLAY FUNCTIONS - TEMPORARILY DISABLED FOR TOURNAMENT
+        // These functions will be re-enabled in future updates
         
         // Trigger replay sequence (simplified for your OBS setup)
         function triggerReplaySequence() {
-            if (replayState.isActive) return;
-            
-            console.log('🎬 Starting replay sequence');
-            replayState.isActive = true;
-            
-            // Show replay controls and status
-            showReplayControls();
-            showReplayStatus('Press Ctrl+R now, then switch to Replay_Scene in OBS');
-            
-            // Signal scene change to Replay_Scene (if OBS WebSocket configured)
-            console.log('📺 Signaling switch to Replay_Scene');
-            socket.emit('obs-change-scene', 'Replay_Scene');
-            
-            // Auto-return to Main_Camera after 20 seconds (your replay duration)
-            replayState.returnTimer = setTimeout(() => {
-                console.log('⏰ Auto-returning to live after 20 seconds');
-                returnToMainCamera();
-            }, 20000);
+            console.log('� Replay functionality temporarily disabled');
         }
         
-        // Show transition scene with Bonita Cove background
         function showTransitionScene() {
-            console.log('🌄 Showing transition scene');
-            replayState.isInTransition = true;
-            
-            elements.replayTransition.classList.add('active');
-            
-            // Send signal to OBS (if WebSocket is configured)
-            socket.emit('obs-change-scene', 'Replay_Transition');
-            
-            showReplayStatus('Preparing replay...');
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Hide transition scene
         function hideTransitionScene() {
-            console.log('🌄 Hiding transition scene');
-            replayState.isInTransition = false;
-            
-            elements.replayTransition.classList.remove('active');
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Show replay controls
         function showReplayControls() {
-            elements.replayControls.classList.add('active');
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Hide replay controls
         function hideReplayControls() {
-            elements.replayControls.classList.remove('active');
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Show replay status
         function showReplayStatus(message) {
-            elements.replayStatusText.textContent = message;
-            elements.replayStatus.classList.add('active');
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Hide replay status
         function hideReplayStatus() {
-            elements.replayStatus.classList.remove('active');
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Start replay sequence
         function startReplaySequence() {
-            console.log('▶️ Starting replay sequence');
-            
-            hideTransitionScene();
-            showReplayStatus('Playing replay... Use OBS replay source');
-            
-            // Signal OBS to switch to replay scene
-            socket.emit('obs-change-scene', 'Replay_Scene');
-            
-            // Auto-return to live after replay duration
-            setTimeout(() => {
-                returnToLive();
-            }, replayState.replayDuration);
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Skip to live feed immediately
         function skipToLive() {
-            if (!replayState.isActive) return;
-            
-            console.log('⏭️ Skipping replay - returning to live immediately');
-            
-            // Clear auto-return timer
-            if (replayState.returnTimer) {
-                clearTimeout(replayState.returnTimer);
-                replayState.returnTimer = null;
-            }
-            
-            returnToMainCamera();
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Return to main camera
         function returnToMainCamera() {
-            console.log('📺 Returning to Main_Camera');
-            
-            hideReplayControls();
-            hideReplayStatus();
-            
-            replayState.isActive = false;
-            
-            // Signal scene change to Main_Camera
-            socket.emit('obs-change-scene', 'Main_Camera');
+            console.log('� Replay functionality temporarily disabled');
         }
         
-        // Handle OBS scene changes (if OBS WebSocket is configured)
         function handleOBSSceneChange(sceneName) {
-            console.log('🎬 OBS Scene changed to:', sceneName);
-            
-            if (sceneName === 'Main_Camera' && replayState.isActive) {
-                returnToLive();
-            }
+            console.log('🚫 Replay functionality temporarily disabled');
         }
         
-        // Add keyboard shortcuts for replay control
         function setupReplayKeyboardShortcuts() {
-            document.addEventListener('keydown', (e) => {
-                // Only process if focused on the overlay
-                if (document.activeElement === document.body) {
-                    switch(e.key) {
-                        case 'r':
-                        case 'R':
-                            if (!replayState.isActive) {
-                                triggerReplay();
-                            }
-                            break;
-                        case 's':
-                        case 'S':
-                            if (replayState.isActive) {
-                                skipToLive();
-                            }
-                            break;
-                        case 'Escape':
-                            if (replayState.isActive) {
-                                returnToLive();
-                            }
-                            break;
-                    }
+            console.log('🚫 Replay functionality temporarily disabled');
+        }
                 }
             });
         }
+        */
         
         // Start the overlay when page loads
         function initializeOverlay() {

@@ -366,55 +366,18 @@
                     <input type="text" id="team2-player2" placeholder="Second player name">
                 </div>
             </div>
-        </div>        <!-- REPLAY CONTROLS -->
-        <div class="section">
-            <h2>🎬 Replay Controls</h2>
+        </div>        <!-- REPLAY CONTROLS - TEMPORARILY DISABLED -->
+        <div class="section" style="opacity: 0.5; pointer-events: none;">
+            <h2>🎬 Replay Controls (Coming Soon)</h2>
             <div class="help-text">
-                💡 <strong>Your OBS Setup:</strong> Ctrl+R saves last 10 seconds • Replay Scene auto-plays at 0.5x
+                ⚠️ <strong>Temporarily Disabled:</strong> Replay functionality is being refined for future tournaments
             </div>
             
-            <div class="action-grid" style="margin-bottom: 20px;">
-                <button class="btn btn-success btn-large" onclick="triggerSimpleReplay()">🎬 Trigger Replay</button>
-                <button class="btn btn-warning" onclick="skipReplayToLive()">⏭️ Skip to Live</button>
-            </div>
-            
-            <div style="padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: left;">
-                <h4>📺 Quick Workflow:</h4>
-                <ol style="margin: 10px 0; padding-left: 20px; line-height: 1.6;">
-                    <li><strong>Great play happens</strong> → Keep watching</li>
-                    <li><strong>Click "Trigger Replay"</strong> → Web interface switches to Replay_Scene</li>
-                    <li><strong>Press Ctrl+R manually</strong> → Saves last 10 seconds</li>
-                    <li><strong>OBS auto-plays replay</strong> → Your script loads latest video at 0.5x</li>
-                    <li><strong>Wait 20 seconds</strong> → Auto-returns to Main_Camera OR click "Skip to Live"</li>
-                </ol>
-                
-                <div style="margin-top: 15px; padding: 10px; background: rgba(0,0,0,0.3); border-radius: 5px;">
-                    <strong>⚠️ Manual Step Required:</strong><br>
-                    The web interface <strong>cannot</strong> trigger Ctrl+R automatically due to browser security.<br>
-                    <strong>You must press Ctrl+R manually</strong> after clicking "Trigger Replay".
-                </div>
-                
-                <div style="margin-top: 10px; font-size: 13px; color: #ccc;">
-                    <strong>Alternative:</strong> Set up OBS WebSocket plugin for full automation (see documentation).
-                </div>
-            </div>
-            
-            <div style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
-                <h4>📺 OBS Setup Instructions:</h4>
-                <div style="font-size: 14px; line-height: 1.5;">
-                    <p><strong>1. Create these scenes in OBS:</strong></p>
-                    <ul style="text-align: left;">
-                        <li><code>Main_Camera</code> - Your live camera feed</li>
-                        <li><code>Replay_Transition</code> - Bonita Cove background + OPEN logo</li>
-                        <li><code>Replay_Scene</code> - Your replay source (e.g., instant replay)</li>
-                    </ul>
-                    <p><strong>2. Replay Workflow:</strong></p>
-                    <ul style="text-align: left;">
-                        <li>Click "Trigger Replay" → Shows transition scene</li>
-                        <li>Manually switch OBS to replay source or use hotkeys</li>
-                        <li>System auto-returns to live after duration</li>
-                    </ul>
-                </div>
+            <div style="padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; text-align: center;">
+                <p><strong>📢 For Tournament Day:</strong></p>
+                <p>Replay controls have been temporarily disabled to ensure a smooth competition experience.</p>
+                <p>Focus on using the scoring controls and tournament information features.</p>
+                <p><em>Replay functionality will be enhanced and re-enabled in future updates.</em></p>
             </div>
             
             <!-- LEGACY REPLAY QUEUE -->
@@ -436,12 +399,18 @@
         <div class="section">
             <h2>📺 Display Controls</h2>
             <div class="help-text">
-                💡 <strong>Tournament info:</strong> Show rankings between sets or during breaks
+                💡 <strong>Tournament Settings:</strong> Configure tournament information and match format
             </div>
             
-            <div class="action-grid">
-                <button class="btn btn-success btn-large" onclick="showRankings()">🏆 Show Rankings (10s)</button>
-                <button class="btn" onclick="toggleOverlayVisibility()">👁️ Toggle Overlay</button>
+            <!-- DISABLED CONTROLS -->
+            <div style="opacity: 0.5; pointer-events: none; margin-bottom: 20px;">
+                <div class="action-grid">
+                    <button class="btn btn-success btn-large">🏆 Show Rankings (Coming Soon)</button>
+                    <button class="btn">👁️ Toggle Overlay (Coming Soon)</button>
+                </div>
+                <div class="help-text" style="margin-top: 10px;">
+                    ⚠️ Advanced display controls temporarily disabled for tournament
+                </div>
             </div>
             
             <!-- TOURNAMENT INFO -->
@@ -462,13 +431,13 @@
                 </select>
                 <input type="number" id="match-number" placeholder="Match number" value="1" min="1" onchange="updateTournamentInfo()">
                 
-                <!-- SETS TOGGLE -->
-                <div style="margin-top: 15px;">
-                    <label style="display: flex; align-items: center; gap: 10px; color: #fff; font-weight: bold;">
-                        <input type="checkbox" id="enable-sets" checked onchange="toggleSetsMode()">
-                        Enable Sets Mode (Best of 3/5)
+                <!-- SETS TOGGLE with improved visibility -->
+                <div style="margin-top: 15px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; border: 2px solid #4a90e2;">
+                    <label style="display: flex; align-items: center; gap: 10px; color: #ffffff; font-weight: bold; font-size: 16px; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
+                        <input type="checkbox" id="enable-sets" checked onchange="toggleSetsMode()" style="transform: scale(1.2);">
+                        <span style="color: #ffffff; text-shadow: 2px 2px 4px rgba(0,0,0,0.9);">Enable Sets Mode (Best of 3/5)</span>
                     </label>
-                    <div class="help-text" style="margin-top: 5px;">
+                    <div class="help-text" style="margin-top: 8px; color: #e0e0e0; text-shadow: 1px 1px 2px rgba(0,0,0,0.8);">
                         💡 Uncheck this for single-game matches without sets
                     </div>
                 </div>
@@ -697,71 +666,48 @@
         }
         
         /**
-         * SIMPLIFIED REPLAY SYSTEM FUNCTIONS
+         * SIMPLIFIED REPLAY SYSTEM FUNCTIONS - TEMPORARILY DISABLED
          */
+        /*
         function triggerSimpleReplay() {
-            // Trigger the simplified replay system
-            socket.emit('triggerReplay');
-            console.log('🎬 Triggering simple replay system');
-            
-            // Show feedback to referee
-            const replayBtn = document.querySelector('button[onclick="triggerSimpleReplay()"]');
-            if (replayBtn) {
-                const originalText = replayBtn.textContent;
-                replayBtn.textContent = '🎬 Replay Active! Press Ctrl+R';
-                replayBtn.disabled = true;
-                replayBtn.style.background = 'var(--warning-color)';
-                
-                // Re-enable after 20 seconds (your replay duration)
-                setTimeout(() => {
-                    replayBtn.textContent = originalText;
-                    replayBtn.disabled = false;
-                    replayBtn.style.background = '';
-                }, 20000);
-            }
+            // DISABLED FOR TOURNAMENT - WILL BE RE-ENABLED IN FUTURE UPDATE
+            console.log('🚫 Replay functionality temporarily disabled');
+            alert('Replay functionality is temporarily disabled for this tournament.');
         }
-        
+
         function skipReplayToLive() {
-            socket.emit('skipReplay');
-            console.log('⏭️ Skipping replay to live feed');
-            
-            const skipBtn = document.querySelector('button[onclick="skipReplayToLive()"]');
-            if (skipBtn) {
-                const originalText = skipBtn.textContent;
-                skipBtn.textContent = '📺 Returned to Live';
-                skipBtn.style.background = 'var(--info-color)';
-                
-                setTimeout(() => {
-                    skipBtn.textContent = originalText;
-                    skipBtn.style.background = '';
-                }, 2000);
-            }
+            // DISABLED FOR TOURNAMENT - WILL BE RE-ENABLED IN FUTURE UPDATE
+            console.log('🚫 Replay functionality temporarily disabled');
+            alert('Replay functionality is temporarily disabled for this tournament.');
         }
-        
+
         function removeReplay(index) {
-            // Remove replay from queue (implementation depends on your needs)
-            console.log(`🗑️ Removing replay at index ${index}`);
+            // DISABLED FOR TOURNAMENT - WILL BE RE-ENABLED IN FUTURE UPDATE
+            console.log('� Replay functionality temporarily disabled');
         }
-        
+
         function clearReplayQueue() {
-            if (confirm('Clear all queued replays?')) {
-                // Implementation to clear replay queue
-                console.log('🗑️ Replay queue cleared');
-            }
+            // DISABLED FOR TOURNAMENT - WILL BE RE-ENABLED IN FUTURE UPDATE
+            console.log('� Replay functionality temporarily disabled');
         }
+        */
         
         /**
-         * DISPLAY CONTROL FUNCTIONS
+         * DISPLAY CONTROL FUNCTIONS - TEMPORARILY DISABLED
          */
+        /*
         function showRankings() {
-            socket.emit('toggleRankings');
-            console.log('🏆 Showing rankings on overlay');
+            // DISABLED FOR TOURNAMENT
+            console.log('🚫 Rankings display temporarily disabled');
+            alert('Rankings display is temporarily disabled for this tournament.');
         }
         
         function toggleOverlayVisibility() {
-            // This could hide/show the entire overlay
-            console.log('👁️ Toggling overlay visibility');
+            // DISABLED FOR TOURNAMENT
+            console.log('🚫 Overlay toggle temporarily disabled');
+            alert('Overlay toggle is temporarily disabled for this tournament.');
         }
+        */
         
         function togglePlayerNames() {
             socket.emit('togglePlayerNames');
