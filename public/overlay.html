@@ -73,15 +73,15 @@
         }
 
         .open-logo-topleft .open-logo {
-            max-width: 224px; /* Increased from 187px by 20% */
-            max-height: 295px; /* Increased from 246px by 20% */
+            max-width: 246px; /* Increased from 224px by 10% */
+            max-height: 325px; /* Increased from 295px by 10% */
             object-fit: contain;
             filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.6));
         }
 
         .open-logo-topleft .nfa-logo {
-            max-width: 97px; /* Increased from 84px by 15% (30% smaller + 15% increase) */
-            max-height: 97px; /* Increased from 84px by 15% */
+            max-width: 107px; /* Increased from 97px by 10% */
+            max-height: 107px; /* Increased from 97px by 10% */
             object-fit: contain;
             filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.6));
         }
@@ -333,7 +333,7 @@
             filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.6));
         }
 
-        /* TOP RIGHT: TOURNAMENT INFO (SLIGHTLY LOWER) */
+        /* TOP RIGHT: TOURNAMENT INFO (CENTERED TEXT) */
         .tournament-info {
             position: absolute;
             top: 3.5vh; /* Moved down from 2vh */
@@ -346,6 +346,7 @@
             color: white;
             box-shadow: 0 8px 32px rgba(255,107,157,0.3); /* Same as scoreboard */
             backdrop-filter: blur(10px); /* Same as scoreboard */
+            text-align: center; /* Center all text */
         }
 
         .tournament-division {
@@ -355,6 +356,7 @@
             margin-bottom: 7px; /* Increased from 6px by 20% */
             text-transform: uppercase;
             letter-spacing: 1px;
+            text-align: center; /* Centered */
         }
 
         .tournament-details {
@@ -362,6 +364,7 @@
             font-size: 14px; /* Increased from 12px by 20% */
             line-height: 1.3;
             opacity: 0.95;
+            text-align: center; /* Centered */
         }
 
         .tournament-location {
@@ -369,6 +372,7 @@
             opacity: 0.8;
             margin-top: 5px; /* Increased from 4px by 20% */
             font-style: italic;
+            text-align: center; /* Centered */
         }
 
         /* BOTTOM RIGHT: SPONSORS - NO BACKGROUND, INCREASED BY 20% MORE */
@@ -439,6 +443,107 @@
                 transform: translate(-50%, -50%) scale(1);
                 box-shadow: 0 12px 40px rgba(255,107,157,0.6);
             }
+        }
+
+        /* REPLAY TRANSITION SCENE */
+        .replay-transition {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('/example_files/Bonita_cove_transition.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            display: none;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .replay-transition.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .replay-transition-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 60%;
+            max-height: 60%;
+            object-fit: contain;
+            filter: drop-shadow(4px 4px 8px rgba(0,0,0,0.7));
+        }
+
+        /* REPLAY CONTROLS */
+        .replay-controls {
+            position: fixed;
+            top: 85%;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 150;
+            display: none;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .replay-controls.active {
+            display: flex;
+        }
+
+        .replay-btn {
+            background: linear-gradient(135deg, var(--primary-pink) 0%, var(--primary-orange) 100%);
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 12px;
+            color: white;
+            font-family: 'DayPosterBlack', Arial, sans-serif;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px 24px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(255,107,157,0.4);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+        }
+
+        .replay-btn:hover {
+            background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-pink) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255,107,157,0.6);
+        }
+
+        .replay-btn.primary {
+            font-size: 18px;
+            padding: 15px 30px;
+        }
+
+        .replay-status {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(0,10,20,0.95) 0%, rgba(5,15,25,0.95) 100%);
+            border: 3px solid var(--primary-pink);
+            border-radius: 15px;
+            padding: 20px 30px;
+            color: white;
+            font-family: 'AcuminVariable', sans-serif;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            z-index: 200;
+            display: none;
+            box-shadow: 0 8px 32px rgba(255,107,157,0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .replay-status.active {
+            display: block;
         }
 
         .rankings-container {
@@ -728,6 +833,23 @@
             🔄 Replay
         </div>
 
+        <!-- REPLAY SYSTEM -->
+        <!-- Transition Scene -->
+        <div class="replay-transition" id="replay-transition">
+            <img src="/logos/OPEN_SDFTV_grey_logo.png" alt="OPEN SDFTV" class="replay-transition-logo" />
+        </div>
+
+        <!-- Replay Controls -->
+        <div class="replay-controls" id="replay-controls">
+            <button class="replay-btn primary" id="start-replay-btn">🎬 Start Replay</button>
+            <button class="replay-btn" id="skip-replay-btn">⏭️ Skip to Live</button>
+        </div>
+
+        <!-- Replay Status -->
+        <div class="replay-status" id="replay-status">
+            <div id="replay-status-text">Preparing replay...</div>
+        </div>
+
         <!-- CENTER: RANKINGS TABLE -->
         <div class="rankings-container" id="rankings-container">
             <div class="rankings-title">🏆 Tournament Rankings</div>
@@ -789,7 +911,15 @@
             rankingsContainer: document.getElementById('rankings-container'),
             rankingsContent: document.getElementById('rankings-content'),
             sponsorLogo: document.getElementById('sponsor-logo'),
-            sponsorsContainer: document.getElementById('sponsors-container')
+            sponsorsContainer: document.getElementById('sponsors-container'),
+            
+            // Replay system elements
+            replayTransition: document.getElementById('replay-transition'),
+            replayControls: document.getElementById('replay-controls'),
+            replayStatus: document.getElementById('replay-status'),
+            replayStatusText: document.getElementById('replay-status-text'),
+            startReplayBtn: document.getElementById('start-replay-btn'),
+            skipReplayBtn: document.getElementById('skip-replay-btn')
         };
         
         // Store current game state and sponsors
@@ -797,6 +927,12 @@
         let sponsors = [];
         let currentSponsorIndex = 0;
         let sponsorRotationInterval;
+        
+        // Replay system variables (simplified)
+        let replayState = {
+            isActive: false,
+            returnTimer: null
+        };
         
         /**
          * CONNECTION HANDLING
@@ -1228,7 +1364,190 @@
             }, 2000);
         }
         
+        /**
+         * REPLAY SYSTEM FOR OBS INTEGRATION
+         */
+        
+        // Setup replay system event listeners
+        function initializeReplaySystem() {
+            // Trigger replay button
+            elements.startReplayBtn.addEventListener('click', triggerReplaySequence);
+            
+            // Skip replay button
+            elements.skipReplayBtn.addEventListener('click', skipToLive);
+            
+            // Listen for replay trigger from control panel
+            socket.on('trigger-replay', () => {
+                triggerReplaySequence();
+            });
+            
+            // Listen for skip replay from control panel
+            socket.on('skip-replay', () => {
+                skipToLive();
+            });
+        }
+        
+        // Trigger replay sequence (simplified for your OBS setup)
+        function triggerReplaySequence() {
+            if (replayState.isActive) return;
+            
+            console.log('🎬 Starting replay sequence');
+            replayState.isActive = true;
+            
+            // Show replay controls and status
+            showReplayControls();
+            showReplayStatus('Press Ctrl+R now, then switch to Replay_Scene in OBS');
+            
+            // Signal scene change to Replay_Scene (if OBS WebSocket configured)
+            console.log('📺 Signaling switch to Replay_Scene');
+            socket.emit('obs-change-scene', 'Replay_Scene');
+            
+            // Auto-return to Main_Camera after 20 seconds (your replay duration)
+            replayState.returnTimer = setTimeout(() => {
+                console.log('⏰ Auto-returning to live after 20 seconds');
+                returnToMainCamera();
+            }, 20000);
+        }
+        
+        // Show transition scene with Bonita Cove background
+        function showTransitionScene() {
+            console.log('🌄 Showing transition scene');
+            replayState.isInTransition = true;
+            
+            elements.replayTransition.classList.add('active');
+            
+            // Send signal to OBS (if WebSocket is configured)
+            socket.emit('obs-change-scene', 'Replay_Transition');
+            
+            showReplayStatus('Preparing replay...');
+        }
+        
+        // Hide transition scene
+        function hideTransitionScene() {
+            console.log('🌄 Hiding transition scene');
+            replayState.isInTransition = false;
+            
+            elements.replayTransition.classList.remove('active');
+        }
+        
+        // Show replay controls
+        function showReplayControls() {
+            elements.replayControls.classList.add('active');
+        }
+        
+        // Hide replay controls
+        function hideReplayControls() {
+            elements.replayControls.classList.remove('active');
+        }
+        
+        // Show replay status
+        function showReplayStatus(message) {
+            elements.replayStatusText.textContent = message;
+            elements.replayStatus.classList.add('active');
+        }
+        
+        // Hide replay status
+        function hideReplayStatus() {
+            elements.replayStatus.classList.remove('active');
+        }
+        
+        // Start replay sequence
+        function startReplaySequence() {
+            console.log('▶️ Starting replay sequence');
+            
+            hideTransitionScene();
+            showReplayStatus('Playing replay... Use OBS replay source');
+            
+            // Signal OBS to switch to replay scene
+            socket.emit('obs-change-scene', 'Replay_Scene');
+            
+            // Auto-return to live after replay duration
+            setTimeout(() => {
+                returnToLive();
+            }, replayState.replayDuration);
+        }
+        
+        // Skip to live feed immediately
+        function skipToLive() {
+            if (!replayState.isActive) return;
+            
+            console.log('⏭️ Skipping replay - returning to live immediately');
+            
+            // Clear auto-return timer
+            if (replayState.returnTimer) {
+                clearTimeout(replayState.returnTimer);
+                replayState.returnTimer = null;
+            }
+            
+            returnToMainCamera();
+        }
+        
+        // Return to main camera
+        function returnToMainCamera() {
+            console.log('📺 Returning to Main_Camera');
+            
+            hideReplayControls();
+            hideReplayStatus();
+            
+            replayState.isActive = false;
+            
+            // Signal scene change to Main_Camera
+            socket.emit('obs-change-scene', 'Main_Camera');
+        }
+        
+        // Handle OBS scene changes (if OBS WebSocket is configured)
+        function handleOBSSceneChange(sceneName) {
+            console.log('🎬 OBS Scene changed to:', sceneName);
+            
+            if (sceneName === 'Main_Camera' && replayState.isActive) {
+                returnToLive();
+            }
+        }
+        
+        // Add keyboard shortcuts for replay control
+        function setupReplayKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                // Only process if focused on the overlay
+                if (document.activeElement === document.body) {
+                    switch(e.key) {
+                        case 'r':
+                        case 'R':
+                            if (!replayState.isActive) {
+                                triggerReplay();
+                            }
+                            break;
+                        case 's':
+                        case 'S':
+                            if (replayState.isActive) {
+                                skipToLive();
+                            }
+                            break;
+                        case 'Escape':
+                            if (replayState.isActive) {
+                                returnToLive();
+                            }
+                            break;
+                    }
+                }
+            });
+        }
+        
         // Start the overlay when page loads
+        function initializeOverlay() {
+            console.log('🏐 San Diego Footvolley Open Overlay Loading...');
+            
+            // Initialize replay system
+            initializeReplaySystem();
+            setupReplayKeyboardShortcuts();
+            
+            setTimeout(() => {
+                if (socket.connected) {
+                    elements.loading.style.display = 'none';
+                    elements.scoreboard.style.display = 'block';
+                }
+            }, 2000);
+        }
+        
         initializeOverlay();
         
         // Error handling

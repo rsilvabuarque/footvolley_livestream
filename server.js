@@ -373,6 +373,27 @@ io.on('connection', (socket) => {
         io.emit('gameStateUpdate', gameState);
     });
     
+    /**
+     * SIMPLIFIED REPLAY SYSTEM EVENTS
+     */
+    socket.on('triggerReplay', () => {
+        console.log('🎬 Simple replay triggered');
+        // Broadcast to all overlays to start replay sequence
+        io.emit('trigger-replay');
+    });
+    
+    socket.on('skipReplay', () => {
+        console.log('⏭️ Skip replay triggered');
+        // Broadcast to all overlays to skip replay
+        io.emit('skip-replay');
+    });
+    
+    socket.on('obs-change-scene', (sceneName) => {
+        console.log('🎬 OBS Scene change requested:', sceneName);
+        // Broadcast to all connected clients
+        io.emit('obs-scene-change', sceneName);
+    });
+    
     // Handle client disconnection
     socket.on('disconnect', () => {
         console.log('❌ Client disconnected:', socket.id);
