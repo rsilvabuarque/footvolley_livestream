@@ -22,6 +22,29 @@ const fs = require('fs');
 const open = require('open'); // This will automatically open web browser
 require('dotenv').config();
 
+const defaultOverlaySettings = {
+    textScale: 100,
+    divisionOptions: ['Male A', 'Male B', 'Female A', 'Female C', 'Mixed Duos'],
+    hostLogoScale: 100,
+    sponsorLogoScale: 100,
+    matchInfoScale: 100,
+    colorPalette: {
+        primaryPink: { c: 0, m: 58, y: 38, k: 0 },
+        primaryOrange: { c: 0, m: 46, y: 76, k: 0 },
+        primaryYellow: { c: 0, m: 15, y: 76, k: 0 },
+        primaryGreen: { c: 48, m: 0, y: 39, k: 19 },
+        primaryBlue: { c: 69, m: 39, y: 0, k: 0 },
+        primaryPurple: { c: 39, m: 52, y: 0, k: 0 }
+    }
+};
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+const toNumeric = (value, fallback) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? number : fallback;
+};
+const cloneOverlaySettings = () => JSON.parse(JSON.stringify(defaultOverlaySettings));
+
 // Create our web server
 const app = express();
 const server = http.createServer(app);
@@ -67,13 +90,13 @@ let gameState = {
         team1: [0, 0, 0], // Scores for each set
         team2: [0, 0, 0]
     },
+    setsEnabled: false,
     
     // Tournament information
     tournament: {
         name: 'San Diego Footvolley Open 2025',
-        division: 'Open Division', // Open Division, Womens Division, Beginners Division
+        division: 'Male A',
         round: 'Quarter Finals',
-        matchNumber: 1,
         location: 'Mission Bay, San Diego - CA'
     },
     
@@ -90,7 +113,10 @@ let gameState = {
         minutes: 0,
         seconds: 0,
         running: false
-    }
+    },
+
+    // Overlay look-and-feel configuration
+    overlaySettings: cloneOverlaySettings()
 };
 
 /**
@@ -130,6 +156,7 @@ io.on('connection', (socket) => {
     
     // Send current game state to newly connected client
     socket.emit('gameStateUpdate', gameState);
+    socket.emit('overlaySettingsUpdate', gameState.overlaySettings);
     
     /**
      * SCORE UPDATES
@@ -184,19 +211,21 @@ io.on('connection', (socket) => {
      * TOURNAMENT INFO UPDATES
      * Handle tournament info updates from control panel
      */
-    socket.on('updateTournamentInfo', (data) => {
+    socket.on('updateTournamentInfo', (data = {}) => {
         console.log('🏆 Tournament info update:', data);
-        
-        // Update the game state with tournament info
-        gameState.tournament = {
-            division: data.division,
-            location: data.location,
-            round: data.round,
-            matchNumber: data.matchNumber
-        };
-        
-        // Broadcast tournament info update to all overlays
-        io.emit('tournamentInfoUpdate', data);
+
+        if (typeof data.division === 'string') {
+            gameState.tournament.division = data.division;
+        }
+        if (typeof data.round === 'string') {
+            gameState.tournament.round = data.round;
+        }
+        if (typeof data.location === 'string') {
+            gameState.tournament.location = data.location;
+        }
+
+        io.emit('tournamentInfoUpdate', gameState.tournament);
+        io.emit('gameStateUpdate', gameState);
     });
     
     /**
@@ -231,6 +260,80 @@ io.on('connection', (socket) => {
         // Broadcast sets mode update to all overlays
         io.emit('setsModeUpdate', data);
         io.emit('gameStateUpdate', gameState);
+    });
+
+    socket.on('updateOverlaySettings', (data = {}) => {
+        if (typeof data !== 'object' || data === null) {
+            return;
+        }
+
+        if (!gameState.overlaySettings) {
+            gameState.overlaySettings = cloneOverlaySettings();
+        }
+
+        const settings = gameState.overlaySettings;
+        let divisionChanged = false;
+
+        if (data.textScale !== undefined) {
+            const textScale = clamp(toNumeric(data.textScale, settings.textScale), 50, 200);
+            settings.textScale = textScale;
+        }
+
+        if (data.hostLogoScale !== undefined) {
+            const value = clamp(toNumeric(data.hostLogoScale, settings.hostLogoScale), 50, 200);
+            settings.hostLogoScale = value;
+        }
+
+        if (data.sponsorLogoScale !== undefined) {
+            const value = clamp(toNumeric(data.sponsorLogoScale, settings.sponsorLogoScale), 50, 200);
+            settings.sponsorLogoScale = value;
+        }
+
+        if (data.matchInfoScale !== undefined) {
+            const value = clamp(toNumeric(data.matchInfoScale, settings.matchInfoScale), 50, 200);
+            settings.matchInfoScale = value;
+        }
+
+        if (Array.isArray(data.divisionOptions)) {
+            const sanitized = data.divisionOptions
+                .map((option) => (typeof option === 'string' ? option.trim() : ''))
+                .filter(Boolean);
+            
+            if (sanitized.length) {
+                settings.divisionOptions = sanitized;
+                if (!sanitized.includes(gameState.tournament.division)) {
+                    gameState.tournament.division = sanitized[0];
+                    divisionChanged = true;
+                }
+            } else {
+                settings.divisionOptions = [...defaultOverlaySettings.divisionOptions];
+                if (!settings.divisionOptions.includes(gameState.tournament.division)) {
+                    gameState.tournament.division = settings.divisionOptions[0];
+                    divisionChanged = true;
+                }
+            }
+        }
+
+        if (data.colorPalette && typeof data.colorPalette === 'object') {
+            Object.entries(data.colorPalette).forEach(([key, value]) => {
+                if (!settings.colorPalette[key] || typeof value !== 'object' || value === null) {
+                    return;
+                }
+
+                const target = settings.colorPalette[key];
+                target.c = clamp(toNumeric(value.c, target.c), 0, 100);
+                target.m = clamp(toNumeric(value.m, target.m), 0, 100);
+                target.y = clamp(toNumeric(value.y, target.y), 0, 100);
+                target.k = clamp(toNumeric(value.k, target.k), 0, 100);
+            });
+        }
+
+        io.emit('overlaySettingsUpdate', settings);
+        io.emit('gameStateUpdate', gameState);
+
+        if (divisionChanged) {
+            io.emit('tournamentInfoUpdate', gameState.tournament);
+        }
     });
     
     /**
@@ -320,25 +423,6 @@ io.on('connection', (socket) => {
     });
     
     /**
-     * TOURNAMENT INFO UPDATES
-     */
-    socket.on('updateTournamentInfo', (data) => {
-        console.log('🏆 Tournament info update:', data);
-        
-        if (data.division) {
-            gameState.tournament.division = data.division;
-        }
-        if (data.round) {
-            gameState.tournament.round = data.round;
-        }
-        if (data.matchNumber) {
-            gameState.tournament.matchNumber = data.matchNumber;
-        }
-        
-        io.emit('gameStateUpdate', gameState);
-    });
-    
-    /**
      * UTILITY FUNCTIONS
      */
     socket.on('resetMatch', () => {
@@ -354,6 +438,7 @@ io.on('connection', (socket) => {
             team1: [0, 0, 0],
             team2: [0, 0, 0]
         };
+        gameState.setsEnabled = false;
         gameState.replayQueue = [];
         gameState.showReplay = false;
         gameState.showRankings = false;

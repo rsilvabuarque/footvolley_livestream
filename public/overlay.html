@@ -8,11 +8,11 @@
         /*
         SAN DIEGO FOOTVOLLEY OPEN - BRANDED OVERLAY
         
-        Tournament branding with four-corner layout:
-        - Top Left: Scoreboard with OPEN logo
-        - Top Right: Host logos (SDFTV + NFA)
-        - Bottom Left: Tournament info with division selector
-        - Bottom Right: Rotating sponsors
+    Tournament branding with four-corner layout:
+    - Top Center: Scoreboard
+    - Top Right: Match info
+    - Bottom Left: Hosted by logos
+    - Bottom Right: Rotating sponsors
         */
         
         @font-face {
@@ -59,39 +59,10 @@
             --primary-purple: #9B7BFF;
             --dark-bg: rgba(0,0,0,0.9);
             --light-bg: rgba(255,255,255,0.95);
-        }
-
-        /* TOP LEFT: OPEN LOGO + NFA LOGO SIDE BY SIDE - ALIGNED HEIGHT */
-        .open-logo-topleft {
-            position: absolute;
-            top: 2vh; /* Aligned with tournament info */
-            left: 2vw;
-            z-index: 50;
-            display: flex;
-            align-items: center;
-            gap: 15px; /* Space between logos */
-        }
-
-        .open-logo-topleft .open-logo {
-            max-width: 246px; /* Increased from 224px by 10% */
-            max-height: 325px; /* Increased from 295px by 10% */
-            object-fit: contain;
-            filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.6));
-        }
-
-        .open-logo-topleft .nfa-logo {
-            max-width: 107px; /* Increased from 97px by 10% */
-            max-height: 107px; /* Increased from 97px by 10% */
-            object-fit: contain;
-            filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.6));
-        }
-
-        /* Legacy img selector for backwards compatibility */
-        .open-logo-topleft img:not(.nfa-logo) {
-            max-width: 224px; /* Increased from 187px by 20% */
-            max-height: 295px; /* Increased from 246px by 20% */
-            object-fit: contain;
-            filter: drop-shadow(2px 2px 6px rgba(0,0,0,0.6));
+            --overlay-text-scale: 1;
+            --host-logo-scale: 1;
+            --sponsor-logo-scale: 1;
+            --match-info-scale: 1;
         }
 
         /* TOP MIDDLE: TRULY HORIZONTAL SCOREBOARD */
@@ -101,10 +72,11 @@
             top: 3.5vh !important; /* Moved down from 2vh */
             left: 50% !important;
             transform: translateX(-50%) !important;
+            transform-origin: top center;
             background: linear-gradient(135deg, rgba(0,10,20,0.95) 0%, rgba(5,15,25,0.95) 100%);
             border: 3px solid var(--primary-pink);
             border-radius: 15px;
-            padding: 12px 24px; /* Reduced from 18px 30px */
+            padding: calc(12px * var(--overlay-text-scale)) calc(24px * var(--overlay-text-scale)); /* Reduced from 18px 30px */
             box-shadow: 0 8px 32px rgba(255,107,157,0.3);
             backdrop-filter: blur(10px);
             z-index: 100;
@@ -112,7 +84,7 @@
             align-items: center !important;
             justify-content: center !important;
             flex-direction: row !important;
-            gap: 30px; /* Increased gap for better spacing */
+            gap: calc(30px * var(--overlay-text-scale)); /* Increased gap for better spacing */
             font-family: 'AcuminVariable', sans-serif;
             color: #FFFFFF;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
@@ -155,13 +127,13 @@
         /* SCORE DISPLAYS - 1920x1080 OPTIMIZED */
         .team1-score, .team2-score {
             font-family: 'DayPosterBlack', sans-serif;
-            font-size: 40px;
+            font-size: calc(40px * var(--overlay-text-scale));
             font-weight: bold;
             color: var(--primary-yellow);
             background: rgba(255,212,61,0.1);
             border: 2px solid var(--primary-yellow);
             border-radius: 8px;
-            padding: 10px 18px;
+            padding: calc(10px * var(--overlay-text-scale)) calc(18px * var(--overlay-text-scale));
             min-width: 70px;
             text-align: center;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
@@ -171,7 +143,7 @@
         /* PLAYER NAMES - PERFECTLY CENTERED */
         .team1-players, .team2-players {
             font-family: 'AcuminVariable', sans-serif;
-            font-size: 18px;
+            font-size: calc(18px * var(--overlay-text-scale));
             font-weight: bold;
             color: #FFFFFF;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
@@ -184,7 +156,7 @@
             align-items: center;
             justify-content: center;
             /* Better spacing for widescreen */
-            padding: 6px 12px;
+            padding: calc(6px * var(--overlay-text-scale)) calc(12px * var(--overlay-text-scale));
             /* Allow text wrapping for long names */
             white-space: normal;
             word-wrap: break-word;
@@ -194,7 +166,7 @@
         /* SETS WON - 1920x1080 OPTIMIZED */
         .team1-sets, .team2-sets {
             font-family: 'DayPosterBlack', sans-serif;
-            font-size: 22px;
+            font-size: calc(22px * var(--overlay-text-scale));
             font-weight: bold;
             color: var(--primary-pink);
             text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
@@ -203,7 +175,7 @@
         /* CENTER SEPARATOR - BETTER POSITIONED */
         .separator {
             font-family: 'DayPosterBlack', sans-serif;
-            font-size: 36px; /* Increased from 32px */
+            font-size: calc(36px * var(--overlay-text-scale)); /* Increased from 32px */
             color: var(--primary-yellow);
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             margin: 0 25px; /* Increased from 20px */
@@ -304,13 +276,13 @@
             bottom: 2vh; /* Aligned with sponsors */
             left: 2vw;
             text-align: center;
-            transform: scale(1.59); /* Increased from 1.38 by 15% for SDFTV logo */
+            transform: scale(calc(1.59 * var(--host-logo-scale)));
             transform-origin: bottom left;
         }
 
         .host-text {
             font-family: 'DayPosterBlack', sans-serif;
-            font-size: 16px; /* Reduced from 22px */
+            font-size: calc(16px * var(--overlay-text-scale));
             font-weight: bold;
             color: #FFFFFF;
             margin-bottom: 16px; /* Matched to sponsors spacing */
@@ -347,11 +319,13 @@
             box-shadow: 0 8px 32px rgba(255,107,157,0.3); /* Same as scoreboard */
             backdrop-filter: blur(10px); /* Same as scoreboard */
             text-align: center; /* Center all text */
+            transform: scale(var(--match-info-scale));
+            transform-origin: top right;
         }
 
         .tournament-division {
             font-family: 'DayPosterBlack', Arial, sans-serif;
-            font-size: 19px; /* Increased from 16px by 20% */
+            font-size: calc(19px * var(--overlay-text-scale)); /* Increased from 16px by 20% */
             font-weight: bold;
             margin-bottom: 7px; /* Increased from 6px by 20% */
             text-transform: uppercase;
@@ -361,14 +335,14 @@
 
         .tournament-details {
             font-family: 'AcuminVariable', sans-serif;
-            font-size: 14px; /* Increased from 12px by 20% */
+            font-size: calc(14px * var(--overlay-text-scale)); /* Increased from 12px by 20% */
             line-height: 1.3;
             opacity: 0.95;
             text-align: center; /* Centered */
         }
 
         .tournament-location {
-            font-size: 12px; /* Increased from 10px by 20% */
+            font-size: calc(12px * var(--overlay-text-scale)); /* Increased from 10px by 20% */
             opacity: 0.8;
             margin-top: 5px; /* Increased from 4px by 20% */
             font-style: italic;
@@ -388,11 +362,13 @@
             min-width: 256px; /* Increased from 213px by 20% */
             min-height: 204px; /* Increased from 170px by 20% */
             /* box-shadow: removed */
+            transform: scale(var(--sponsor-logo-scale));
+            transform-origin: bottom right;
         }
 
         .sponsors-title {
             font-family: 'DayPosterBlack', Arial, sans-serif;
-            font-size: 30px; /* Increased from 25px by 20% */
+            font-size: calc(30px * var(--overlay-text-scale)); /* Increased from 25px by 20% */
             font-weight: bold;
             color: #FFFFFF; /* Changed to white since no background */
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8); /* Added shadow for visibility */
@@ -750,19 +726,13 @@
             🔄 Connecting to San Diego Footvolley Open control...
         </div>
 
-        <!-- TOP LEFT: OPEN LOGO + NFA LOGO -->
-        <div class="open-logo-topleft">
-            <img src="/logos/OPEN_SDFTV_white_logo.png" alt="OPEN SDFTV" class="open-logo" />
-            <img src="/logos/NFA_logo.png" alt="NFA" class="nfa-logo" />
-        </div>
-
         <!-- CENTER: HORIZONTAL SCOREBOARD -->
         <!-- TEAM 1 LEFT | SEPARATOR | TEAM 2 RIGHT -->
         <div class="scoreboard" id="scoreboard">
             <!-- TEAM 1 SECTION (LEFT) -->
             <div class="team1-section">
                 <span class="team1-score" id="team1-score">0</span>
-                <span class="team1-players" id="team1-players">Player 1A<br><span style="font-size:18px;">&</span><br>Player 1B</span>
+                <span class="team1-players" id="team1-players">Player 1A<br><span style="font-size:calc(18px * var(--overlay-text-scale));">&</span><br>Player 1B</span>
                 <span class="team1-sets" id="team1-sets">(0)</span>
             </div>
             
@@ -772,7 +742,7 @@
             <!-- TEAM 2 SECTION (RIGHT) -->
             <div class="team2-section">
                 <span class="team2-sets" id="team2-sets">(0)</span>
-                <span class="team2-players" id="team2-players">Player 2A<br><span style="font-size:18px;">&</span><br>Player 2B</span>
+                <span class="team2-players" id="team2-players">Player 2A<br><span style="font-size:calc(18px * var(--overlay-text-scale));">&</span><br>Player 2B</span>
                 <span class="team2-score" id="team2-score">0</span>
             </div>
         </div>
@@ -815,9 +785,9 @@
 
         <!-- TOP RIGHT: TOURNAMENT INFO -->
         <div class="tournament-info" id="tournament-info">
-            <div class="tournament-division" id="tournament-division">OPEN DIVISION</div>
+            <div class="tournament-division" id="tournament-division">MALE A</div>
             <div class="tournament-details" id="tournament-details">
-                <div id="tournament-round">Quarter Finals - Match 1</div>
+                <div id="tournament-round">Quarter Finals</div>
                 <div class="tournament-location" id="tournament-location">Mission Bay, San Diego - CA</div>
             </div>
         </div>
@@ -933,6 +903,72 @@
             isActive: false,
             returnTimer: null
         };
+
+        function clamp(value, min, max) {
+            if (!Number.isFinite(value)) {
+                return min;
+            }
+            return Math.min(Math.max(value, min), max);
+        }
+
+        function cmykToHex(color) {
+            if (!color) {
+                return null;
+            }
+
+            const c = clamp(Number(color.c), 0, 100) / 100;
+            const m = clamp(Number(color.m), 0, 100) / 100;
+            const y = clamp(Number(color.y), 0, 100) / 100;
+            const k = clamp(Number(color.k), 0, 100) / 100;
+
+            const r = Math.round(255 * (1 - c) * (1 - k));
+            const g = Math.round(255 * (1 - m) * (1 - k));
+            const b = Math.round(255 * (1 - y) * (1 - k));
+
+            const toHex = (component) => component.toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+
+        function camelToKebab(value) {
+            return value.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+        }
+
+        function applyOverlaySettings(settings) {
+            if (!settings) {
+                return;
+            }
+
+            const root = document.documentElement;
+
+            if (settings.textScale !== undefined) {
+                const ratio = clamp(Number(settings.textScale), 50, 200) / 100;
+                root.style.setProperty('--overlay-text-scale', ratio);
+            }
+
+            if (settings.hostLogoScale !== undefined) {
+                const ratio = clamp(Number(settings.hostLogoScale), 50, 200) / 100;
+                root.style.setProperty('--host-logo-scale', ratio);
+            }
+
+            if (settings.sponsorLogoScale !== undefined) {
+                const ratio = clamp(Number(settings.sponsorLogoScale), 50, 200) / 100;
+                root.style.setProperty('--sponsor-logo-scale', ratio);
+            }
+
+            if (settings.matchInfoScale !== undefined) {
+                const ratio = clamp(Number(settings.matchInfoScale), 50, 200) / 100;
+                root.style.setProperty('--match-info-scale', ratio);
+            }
+
+            if (settings.colorPalette) {
+                Object.entries(settings.colorPalette).forEach(([key, value]) => {
+                    const hex = cmykToHex(value);
+                    if (hex) {
+                        root.style.setProperty(`--${camelToKebab(key)}`, hex);
+                    }
+                });
+            }
+        }
         
         /**
          * CONNECTION HANDLING
@@ -969,6 +1005,11 @@
             console.log('📊 Sets mode update received:', data);
             updateSetsDisplay(data.enabled);
         });
+
+        socket.on('overlaySettingsUpdate', (settings) => {
+            console.log('🎨 Overlay settings update received:', settings);
+            applyOverlaySettings(settings);
+        });
         
         /**
          * GAME STATE UPDATES
@@ -976,6 +1017,7 @@
         socket.on('gameStateUpdate', (gameState) => {
             console.log('📊 Overlay received update:', gameState);
             currentGameState = gameState;
+            applyOverlaySettings(gameState.overlaySettings);
             updateOverlay();
         });
         
@@ -989,11 +1031,11 @@
             const tournamentLocation = document.getElementById('tournament-location');
             
             if (tournamentDivision) {
-                tournamentDivision.textContent = data.division || 'OPEN DIVISION';
+                tournamentDivision.textContent = (data.division || 'Male A').toUpperCase();
             }
             
             if (tournamentRound) {
-                tournamentRound.textContent = `${data.round || 'Quarter Finals'} - Match ${data.matchNumber || '1'}`;
+                tournamentRound.textContent = data.round || 'Quarter Finals';
             }
             
             if (tournamentLocation) {
@@ -1031,6 +1073,7 @@
             const state = currentGameState;
             
             updateTeamInfo(state);
+            updateSetsDisplay(Boolean(state.setsEnabled));
             updateSetScores(state);
             updateTournamentInfo(state);
             handleReplayDisplay(state);
@@ -1054,7 +1097,7 @@
                     // Format names with line breaks if they're long
                     const combinedLength = player1.length + player2.length;
                     if (combinedLength > 20) {
-                        elements.team1Players.innerHTML = `${player1}<br><span style="font-size:18px;">&</span><br>${player2}`;
+                        elements.team1Players.innerHTML = `${player1}<br><span style="font-size:calc(18px * var(--overlay-text-scale));">&</span><br>${player2}`;
                         hasStackedNames = true;
                     } else {
                         elements.team1Players.textContent = `${player1} & ${player2}`;
@@ -1076,7 +1119,7 @@
                     // Format names with line breaks if they're long
                     const combinedLength = player1.length + player2.length;
                     if (combinedLength > 20) {
-                        elements.team2Players.innerHTML = `${player1}<br><span style="font-size:18px;">&</span><br>${player2}`;
+                        elements.team2Players.innerHTML = `${player1}<br><span style="font-size:calc(18px * var(--overlay-text-scale));">&</span><br>${player2}`;
                         hasStackedNames = true;
                     } else {
                         elements.team2Players.textContent = `${player1} & ${player2}`;
@@ -1105,7 +1148,7 @@
          * UPDATE SET SCORES
          */
         function updateSetScores(state) {
-            if (!state.setScores || state.currentSet === 1) {
+            if (!state.setsEnabled || !state.setScores || state.currentSet === 1) {
                 elements.setInfo.style.display = 'none';
                 return;
             }
@@ -1132,12 +1175,11 @@
          */
         function updateTournamentInfo(state) {
             if (state.tournament) {
-                elements.tournamentDivision.textContent = state.tournament.division || 'Open Division';
-                
-                const roundText = state.tournament.round || 'Match';
-                const matchNumber = state.tournament.matchNumber || 1;
-                elements.tournamentRound.textContent = `${roundText} - Match ${matchNumber}`;
-                
+                elements.tournamentDivision.textContent = (state.tournament.division || 'Male A').toUpperCase();
+
+                const roundText = state.tournament.round || 'Quarter Finals';
+                elements.tournamentRound.textContent = roundText;
+
                 elements.tournamentLocation.textContent = state.tournament.location || 'Mission Bay, San Diego - CA';
             }
         }
