@@ -94,6 +94,20 @@
             max-height: 5.5vh; /* Reduced from 8.3vh */
         }
 
+        .scoreboard.has-multi-line {
+            min-height: 5.5vh;
+            max-height: 7vh;
+            min-width: 55vw;
+        }
+
+        .scoreboard.sport-futsal {
+            min-width: 55vw;
+        }
+
+        .scoreboard.sport-futsal.has-multi-line {
+            min-width: 60vw;
+        }
+
         /* TEAM 1 SECTION (LEFT SIDE) - CENTERED LAYOUT */
         .team1-section {
             display: flex !important;
@@ -163,6 +177,13 @@
             overflow-wrap: break-word;
         }
 
+        .ampersand-line {
+            display: block;
+            font-size: calc(18px * var(--overlay-text-scale));
+            margin: calc(2px * var(--overlay-text-scale)) 0;
+            line-height: 1;
+        }
+
         /* SETS WON - 1920x1080 OPTIMIZED */
         .team1-sets, .team2-sets {
             font-family: 'DayPosterBlack', sans-serif;
@@ -180,6 +201,26 @@
             text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
             margin: 0 25px; /* Increased from 20px */
             align-self: center;
+        }
+
+        .match-timer {
+            font-family: 'DayPosterBlack', sans-serif;
+            font-size: calc(36px * var(--overlay-text-scale));
+            font-weight: bold;
+            color: var(--primary-yellow);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            padding: calc(6px * var(--overlay-text-scale)) calc(12px * var(--overlay-text-scale));
+            border: 2px solid var(--primary-yellow);
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.35);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            min-width: 110px;
+        }
+
+        .optional-block {
+            display: none;
         }
 
         /* Hide legacy elements */
@@ -737,7 +778,8 @@
             </div>
             
             <!-- CENTER SEPARATOR -->
-            <span class="separator">|</span>
+            <span class="separator" id="score-separator">|</span>
+            <div class="match-timer" id="match-timer" style="display:none;">15:00</div>
             
             <!-- TEAM 2 SECTION (RIGHT) -->
             <div class="team2-section">
@@ -776,7 +818,7 @@
         </div>
 
         <!-- BOTTOM LEFT: HOST LOGOS (SDFTV ONLY) -->
-        <div class="host-logos" id="host-logos">
+        <div class="host-logos optional-block" id="host-logos" style="display:none;">
             <div class="host-text">Hosted by</div>
             <div class="logos-container">
                 <img src="/logos/SDFTV logo.png" alt="San Diego Footvolley" class="host-logo">
@@ -784,7 +826,7 @@
         </div>
 
         <!-- TOP RIGHT: TOURNAMENT INFO -->
-        <div class="tournament-info" id="tournament-info">
+        <div class="tournament-info optional-block" id="tournament-info" style="display:none;">
             <div class="tournament-division" id="tournament-division">MALE A</div>
             <div class="tournament-details" id="tournament-details">
                 <div id="tournament-round">Quarter Finals</div>
@@ -793,7 +835,7 @@
         </div>
 
         <!-- BOTTOM RIGHT: SPONSORS -->
-        <div class="sponsors-container" id="sponsors-container">
+        <div class="sponsors-container optional-block" id="sponsors-container" style="display:none;">
             <div class="sponsors-title">Sponsors</div>
             <img src="/sponsors/plex-logo.svg" alt="Sponsor" class="sponsor-logo" id="sponsor-logo">
         </div>
@@ -866,6 +908,8 @@
             team2Score: document.getElementById('team2-score'),
             team2Sets: document.getElementById('team2-sets'),
             team2Name: document.getElementById('team2-name'),
+            matchTimer: document.getElementById('match-timer'),
+            scoreSeparator: document.getElementById('score-separator'),
             
             // Tournament elements
             setInfo: document.getElementById('set-info'),
@@ -875,6 +919,7 @@
             tournamentDetails: document.getElementById('tournament-details'),
             tournamentRound: document.getElementById('tournament-round'),
             tournamentLocation: document.getElementById('tournament-location'),
+            tournamentInfo: document.getElementById('tournament-info'),
             
             // Interactive elements
             replayIndicator: document.getElementById('replay-indicator'),
@@ -882,6 +927,7 @@
             rankingsContent: document.getElementById('rankings-content'),
             sponsorLogo: document.getElementById('sponsor-logo'),
             sponsorsContainer: document.getElementById('sponsors-container'),
+            hostLogos: document.getElementById('host-logos'),
             
             // Replay system elements
             replayTransition: document.getElementById('replay-transition'),
@@ -902,6 +948,18 @@
         let replayState = {
             isActive: false,
             returnTimer: null
+        };
+
+        const SPORT_TYPES = {
+            FOOTVOLLEY: 'footvolley',
+            FUTSAL: 'futsal'
+        };
+        let currentSport = SPORT_TYPES.FOOTVOLLEY;
+        let timerState = null;
+        let currentDisplayOptions = {
+            showSponsors: false,
+            showMatchDetails: false,
+            showHostedBy: false
         };
 
         function clamp(value, min, max) {
@@ -931,6 +989,154 @@
 
         function camelToKebab(value) {
             return value.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+        }
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatTimerDisplay(minutes, seconds) {
+            const minutesNumber = Number(minutes);
+            const secondsNumber = Number(seconds);
+            const safeMinutes = Math.max(0, Math.min(99, Number.isFinite(minutesNumber) ? Math.floor(minutesNumber) : 0));
+            const safeSeconds = Math.max(0, Math.min(59, Number.isFinite(secondsNumber) ? Math.floor(secondsNumber) : 0));
+            return `${String(safeMinutes).padStart(2, '0')}:${String(safeSeconds).padStart(2, '0')}`;
+        }
+
+        function applySportState(sport) {
+            const normalized = sport === SPORT_TYPES.FUTSAL ? SPORT_TYPES.FUTSAL : SPORT_TYPES.FOOTVOLLEY;
+            currentSport = normalized;
+
+            document.body.classList.remove('sport-footvolley', 'sport-futsal');
+            document.body.classList.add(`sport-${normalized}`);
+
+            if (elements.scoreboard) {
+                elements.scoreboard.classList.toggle('sport-futsal', normalized === SPORT_TYPES.FUTSAL);
+                elements.scoreboard.classList.toggle('sport-footvolley', normalized === SPORT_TYPES.FOOTVOLLEY);
+            }
+
+            applyTimerDisplay();
+        }
+
+        function applyDisplayOptions(options = {}) {
+            currentDisplayOptions = {
+                showSponsors: Boolean(options.showSponsors),
+                showMatchDetails: Boolean(options.showMatchDetails),
+                showHostedBy: Boolean(options.showHostedBy)
+            };
+
+            if (currentGameState) {
+                currentGameState.displayOptions = { ...currentDisplayOptions };
+            }
+
+            if (elements.sponsorsContainer) {
+                elements.sponsorsContainer.style.display = currentDisplayOptions.showSponsors ? 'block' : 'none';
+            }
+
+            if (elements.tournamentInfo) {
+                elements.tournamentInfo.style.display = currentDisplayOptions.showMatchDetails ? 'block' : 'none';
+            }
+
+            if (elements.hostLogos) {
+                elements.hostLogos.style.display = currentDisplayOptions.showHostedBy ? 'block' : 'none';
+            }
+        }
+
+        function updateTimerState(timer) {
+            if (!timer) {
+                return;
+            }
+
+            timerState = {
+                running: Boolean(timer.running),
+                minutes: Math.max(0, Number(timer.minutes) || 0),
+                seconds: Math.max(0, Number(timer.seconds) || 0),
+                remainingMs: Math.max(0, Number(timer.remainingMs) || 0),
+                durationMs: Math.max(0, Number(timer.durationMs) || 0)
+            };
+
+            if (currentGameState) {
+                currentGameState.timer = { ...timerState };
+            }
+
+            applyTimerDisplay();
+        }
+
+        function applyTimerDisplay() {
+            if (!elements.matchTimer || !elements.scoreSeparator) {
+                return;
+            }
+
+            const shouldShow = currentSport === SPORT_TYPES.FUTSAL && timerState;
+            if (shouldShow) {
+                elements.matchTimer.textContent = formatTimerDisplay(timerState.minutes, timerState.seconds);
+                elements.matchTimer.style.display = 'flex';
+                elements.scoreSeparator.style.display = 'none';
+            } else {
+                elements.matchTimer.style.display = 'none';
+                elements.scoreSeparator.style.display = '';
+            }
+        }
+
+        function sanitizePlayers(players) {
+            if (!Array.isArray(players)) {
+                return [];
+            }
+
+            return players
+                .map((player) => (typeof player === 'string' ? player.trim() : ''))
+                .filter(Boolean);
+        }
+
+        function buildTeamDisplay(team = {}, fallbackLabel, index) {
+            const fallbackName = typeof fallbackLabel === 'string' && fallbackLabel.trim()
+                ? fallbackLabel.trim()
+                : `Team ${index}`;
+
+            const teamName = typeof team.name === 'string' && team.name.trim()
+                ? team.name.trim()
+                : fallbackName;
+
+            const players = sanitizePlayers(team.players);
+            let html = escapeHtml(teamName);
+            let stacked = false;
+
+            if (currentSport === SPORT_TYPES.FUTSAL) {
+                if (players.length > 0) {
+                    html = players.slice(0, 3).map(escapeHtml).join('<br>');
+                    stacked = players.length > 1;
+                }
+            } else {
+                if (players.length >= 2) {
+                    const [player1, player2] = players;
+                    const combinedLength = player1.length + player2.length;
+                    if (combinedLength > 20) {
+                        html = `${escapeHtml(player1)}<br><span class="ampersand-line">&</span><br>${escapeHtml(player2)}`;
+                        stacked = true;
+                    } else {
+                        html = `${escapeHtml(player1)} & ${escapeHtml(player2)}`;
+                    }
+                } else if (players.length === 1) {
+                    html = escapeHtml(players[0]);
+                }
+            }
+
+            return {
+                html,
+                stacked,
+                score: Math.max(0, Number(team.score) || 0),
+                sets: `(${Math.max(0, Number(team.setsWon) || 0)})`,
+                fallbackName: teamName
+            };
         }
 
         function applyOverlaySettings(settings) {
@@ -1010,14 +1216,37 @@
             console.log('🎨 Overlay settings update received:', settings);
             applyOverlaySettings(settings);
         });
+
+        socket.on('displayOptionsUpdate', (options) => {
+            console.log('🖥️ Display options update received:', options);
+            applyDisplayOptions(options);
+        });
+
+        socket.on('timerUpdate', (timer) => {
+            console.log('⏱️ Timer update received:', timer);
+            updateTimerState(timer);
+        });
         
         /**
          * GAME STATE UPDATES
          */
         socket.on('gameStateUpdate', (gameState) => {
             console.log('📊 Overlay received update:', gameState);
-            currentGameState = gameState;
-            applyOverlaySettings(gameState.overlaySettings);
+            currentGameState = gameState || {};
+
+            applySportState(currentGameState.sport);
+            applyOverlaySettings(currentGameState.overlaySettings);
+
+            if (currentGameState.displayOptions) {
+                applyDisplayOptions(currentGameState.displayOptions);
+            }
+
+            if (currentGameState.timer) {
+                updateTimerState(currentGameState.timer);
+            } else {
+                applyTimerDisplay();
+            }
+
             updateOverlay();
         });
         
@@ -1070,8 +1299,8 @@
          * UPDATE OVERLAY DISPLAY
          */
         function updateOverlay() {
-            const state = currentGameState;
-            
+            const state = currentGameState || {};
+
             updateTeamInfo(state);
             updateSetsDisplay(Boolean(state.setsEnabled));
             updateSetScores(state);
@@ -1079,69 +1308,43 @@
             handleReplayDisplay(state);
             handleRankingsDisplay(state);
             handlePlayerNamesDisplay(state);
+            applyTimerDisplay();
         }
         
         /**
          * UPDATE TEAM INFORMATION
          */
         function updateTeamInfo(state) {
-            const scoreboard = document.querySelector('.scoreboard');
-            let hasStackedNames = false;
-            
-            if (state.team1) {
-                // Display player names instead of team name
-                if (state.team1.players && state.team1.players.length >= 2) {
-                    const player1 = state.team1.players[0] || 'Player 1';
-                    const player2 = state.team1.players[1] || 'Player 2';
-                    
-                    // Format names with line breaks if they're long
-                    const combinedLength = player1.length + player2.length;
-                    if (combinedLength > 20) {
-                        elements.team1Players.innerHTML = `${player1}<br><span style="font-size:calc(18px * var(--overlay-text-scale));">&</span><br>${player2}`;
-                        hasStackedNames = true;
-                    } else {
-                        elements.team1Players.textContent = `${player1} & ${player2}`;
-                    }
-                } else {
-                    elements.team1Players.textContent = state.team1.name || 'Team 1';
-                }
-                
-                elements.team1Score.textContent = state.team1.score || 0;
-                elements.team1Sets.textContent = `(${state.team1.setsWon || 0})`;
+            const scoreboard = elements.scoreboard;
+            if (!scoreboard) {
+                return;
             }
-            
-            if (state.team2) {
-                // Display player names instead of team name
-                if (state.team2.players && state.team2.players.length >= 2) {
-                    const player1 = state.team2.players[0] || 'Player 3';
-                    const player2 = state.team2.players[1] || 'Player 4';
-                    
-                    // Format names with line breaks if they're long
-                    const combinedLength = player1.length + player2.length;
-                    if (combinedLength > 20) {
-                        elements.team2Players.innerHTML = `${player1}<br><span style="font-size:calc(18px * var(--overlay-text-scale));">&</span><br>${player2}`;
-                        hasStackedNames = true;
-                    } else {
-                        elements.team2Players.textContent = `${player1} & ${player2}`;
-                    }
-                } else {
-                    elements.team2Players.textContent = state.team2.name || 'Team 2';
-                }
-                
-                elements.team2Score.textContent = state.team2.score || 0;
-                elements.team2Sets.textContent = `(${state.team2.setsWon || 0})`;
+
+            const team1 = buildTeamDisplay(state.team1 || {}, 'Team 1', 1);
+            const team2 = buildTeamDisplay(state.team2 || {}, 'Team 2', 2);
+
+            elements.team1Players.innerHTML = team1.html;
+            elements.team1Score.textContent = team1.score;
+            elements.team1Sets.textContent = team1.sets;
+
+            elements.team2Players.innerHTML = team2.html;
+            elements.team2Score.textContent = team2.score;
+            elements.team2Sets.textContent = team2.sets;
+
+            if (elements.team1Name) {
+                elements.team1Name.textContent = team1.fallbackName.toUpperCase();
             }
-            
-            // Adjust scoreboard size based on whether names are stacked
-            if (hasStackedNames) {
-                scoreboard.style.minHeight = '5.5vh'; /* Reduced from 8vh */
-                scoreboard.style.maxHeight = '7vh'; /* Reduced from 10vh */
-                scoreboard.style.minWidth = '55vw';
-            } else {
-                scoreboard.style.minHeight = '4vh'; /* Reduced from 6.5vh */
-                scoreboard.style.maxHeight = '5.5vh'; /* Reduced from 8.3vh */
-                scoreboard.style.minWidth = '50vw';
+            if (elements.team2Name) {
+                elements.team2Name.textContent = team2.fallbackName.toUpperCase();
             }
+
+            const hasStackedNames = team1.stacked || team2.stacked || currentSport === SPORT_TYPES.FUTSAL;
+            scoreboard.classList.toggle('has-multi-line', hasStackedNames);
+
+            // Clear inline overrides from earlier versions so CSS classes control layout
+            scoreboard.style.minHeight = '';
+            scoreboard.style.maxHeight = '';
+            scoreboard.style.minWidth = '';
         }
         
         /**

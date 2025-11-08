@@ -5,6 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🏐 Footvolley Referee Control</title>
     <style>
+        :root {
+            --control-bg-start: #667eea;
+            --control-bg-end: #764ba2;
+            --control-accent: #667eea;
+            --control-button-hover: #5a67d8;
+            --control-surface: rgba(255,255,255,0.95);
+            --control-text-on-accent: #ffffff;
+        }
+
+        body.sport-futsal {
+            --control-bg-start: #2E428A;
+            --control-bg-end: #1a2750;
+            --control-accent: #E7C339;
+            --control-button-hover: #c79c1f;
+            --control-text-on-accent: #1f2933;
+        }
+
         /* 
         REFEREE CONTROL PANEL STYLES
         
@@ -23,7 +40,7 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--control-bg-start) 0%, var(--control-bg-end) 100%);
             min-height: 100vh;
             color: #333;
         }
@@ -107,7 +124,7 @@
         }
         
         .section {
-            background: rgba(255,255,255,0.95);
+            background: var(--control-surface);
             padding: 25px;
             border-radius: 15px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.1);
@@ -122,12 +139,12 @@
             margin-top: 0;
             color: #4a5568;
             font-size: 1.5em;
-            border-bottom: 3px solid #667eea;
+            border-bottom: 3px solid var(--control-accent);
             padding-bottom: 10px;
         }
-        
-        /* TEAM CONTROL STYLING */
-        .team-controls {
+        .btn {
+            background: var(--control-accent);
+            color: var(--control-text-on-accent);
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 20px;
@@ -141,7 +158,7 @@
 
         .team-control {
             padding: 20px;
-            border: 3px solid #e2e8f0;
+            background: var(--control-button-hover);
             border-radius: 10px;
             background: #f7fafc;
             transition: all 0.3s ease;
@@ -340,6 +357,131 @@
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
             gap: 10px;
         }
+
+        .sport-toggle {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 12px;
+        }
+
+        .sport-option {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            border: 2px solid rgba(255,255,255,0.35);
+            background: rgba(255,255,255,0.15);
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .sport-option input {
+            display: none;
+        }
+
+        .sport-option span {
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .sport-option:hover {
+            background: rgba(255,255,255,0.25);
+        }
+
+        .sport-option.sport-option--selected {
+            background: var(--control-accent);
+            border-color: transparent;
+            color: var(--control-text-on-accent);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+
+        .player-input--futsal {
+            display: none;
+        }
+
+        body.sport-futsal .player-input--futsal {
+            display: block;
+        }
+
+        #timer-section {
+            display: none;
+        }
+
+        .timer-display {
+            font-size: 48px;
+            font-weight: 700;
+            color: var(--control-accent);
+            text-align: center;
+            margin-bottom: 12px;
+        }
+
+        .timer-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .timer-edit {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: flex-end;
+        }
+
+        .timer-edit label {
+            display: flex;
+            flex-direction: column;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .timer-edit input {
+            width: 100px;
+        }
+
+        .timer-status {
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        .timer-status.info {
+            color: #2b6cb0;
+        }
+
+        .timer-status.success {
+            color: #2f855a;
+        }
+
+        .timer-status.error {
+            color: #c53030;
+        }
+
+        .display-toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        .toggle-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(74, 85, 104, 0.15);
+            background: rgba(255, 255, 255, 0.35);
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .toggle-option input {
+            transform: scale(1.3);
+        }
         
         /* Status indicators */
         .status-online {
@@ -530,6 +672,23 @@
 
     <div id="controls-tab" class="tab-content active">
     <div class="container">
+        <div class="section full-width">
+            <h2>🏅 Sport Mode</h2>
+            <div class="help-text">
+                Choose between Footvolley and Futsal workflows. Switching alters player inputs, timer controls, and overlay palette.
+            </div>
+            <div class="sport-toggle" id="sport-toggle">
+                <label class="sport-option sport-option--selected" data-sport="footvolley">
+                    <input type="radio" name="sport-mode" value="footvolley" checked>
+                    <span>Footvolley</span>
+                </label>
+                <label class="sport-option" data-sport="futsal">
+                    <input type="radio" name="sport-mode" value="futsal">
+                    <span>Futsal</span>
+                </label>
+            </div>
+        </div>
+
         <!-- SCORE CONTROL SECTION -->
         <div class="section">
             <h2>⚽ Score Control</h2>
@@ -583,7 +742,7 @@
         <div class="section full-width">
             <h2>👥 Player Names</h2>
             <div class="help-text">
-                💡 <strong>Required:</strong> Enter player names for each team. Names will be displayed as "Player 1 & Player 2"
+                💡 <strong>Required:</strong> Enter player names for each team. Footvolley displays two athletes; futsal shows all three starters.
             </div>
             
             <div class="team-row">
@@ -591,15 +750,42 @@
                     <h3>Team 1 Players</h3>
                     <input type="text" id="team1-player1" placeholder="First player name">
                     <input type="text" id="team1-player2" placeholder="Second player name">
+                    <input type="text" id="team1-player3" class="player-input--futsal" placeholder="Third player name">
                 </div>
                 
                 <div class="team-control">
                     <h3>Team 2 Players</h3>
                     <input type="text" id="team2-player1" placeholder="First player name">
                     <input type="text" id="team2-player2" placeholder="Second player name">
+                    <input type="text" id="team2-player3" class="player-input--futsal" placeholder="Third player name">
                 </div>
             </div>
-    </div>
+        </div>
+
+        <div class="section full-width" id="timer-section">
+            <h2>⏱️ Match Timer</h2>
+            <div class="help-text">
+                Futsal matches run on a continuous 15-minute clock. Control the on-stream timer here.
+            </div>
+            <div class="timer-display" id="timer-display">15:00</div>
+            <div class="timer-controls">
+                <button class="btn" id="timer-start-btn">▶ Start</button>
+                <button class="btn btn-warning" id="timer-pause-btn">⏸ Pause</button>
+                <button class="btn btn-danger" id="timer-reset-btn">🔄 Reset</button>
+            </div>
+            <div class="timer-edit">
+                <label>
+                    <span>Minutes</span>
+                    <input type="number" id="timer-minutes-input" min="0" max="59" value="15">
+                </label>
+                <label>
+                    <span>Seconds</span>
+                    <input type="number" id="timer-seconds-input" min="0" max="59" value="0">
+                </label>
+                <button class="btn btn-info" id="timer-set-btn" type="button">✏️ Update Timer</button>
+            </div>
+            <div class="timer-status info" id="timer-status">Timer controls available in futsal mode.</div>
+        </div>
     <!-- REPLAY CONTROLS - TEMPORARILY DISABLED -->
         <div class="section" style="opacity: 0.5; pointer-events: none;">
             <h2>🎬 Replay Controls (Coming Soon)</h2>
@@ -794,6 +980,25 @@
                                 </div>
                             </div>
                         </div>
+
+                        <div class="overlay-settings-group full-width">
+                            <h3>Overlay Blocks</h3>
+                            <p class="setup-note">Choose which supplemental elements to include on the broadcast overlay.</p>
+                            <div class="display-toggle-grid">
+                                <label class="toggle-option">
+                                    <input type="checkbox" id="toggle-show-sponsors">
+                                    <span>Show Sponsors</span>
+                                </label>
+                                <label class="toggle-option">
+                                    <input type="checkbox" id="toggle-show-match-details">
+                                    <span>Show Match Details</span>
+                                </label>
+                                <label class="toggle-option">
+                                    <input type="checkbox" id="toggle-show-hosted-by">
+                                    <span>Show "Hosted By"</span>
+                                </label>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -865,12 +1070,20 @@
         
         // Connect to our server for real-time communication
         const socket = io();
-        
+
+        const SPORT_TYPES = {
+            FOOTVOLLEY: 'footvolley',
+            FUTSAL: 'futsal'
+        };
+
         // Store current game state
-        let currentGameState = {};
+        let currentGameState = { sport: SPORT_TYPES.FOOTVOLLEY };
         
         // Get references to all the input elements
         const elements = {
+            sportToggle: document.getElementById('sport-toggle'),
+            sportModeInputs: document.querySelectorAll('input[name="sport-mode"]'),
+            sportOptionLabels: document.querySelectorAll('.sport-option'),
             // Team names
             team1Name: document.getElementById('team1-name'),
             team2Name: document.getElementById('team2-name'),
@@ -884,8 +1097,10 @@
             // Player names
             team1Player1: document.getElementById('team1-player1'),
             team1Player2: document.getElementById('team1-player2'),
+            team1Player3: document.getElementById('team1-player3'),
             team2Player1: document.getElementById('team2-player1'),
             team2Player2: document.getElementById('team2-player2'),
+            team2Player3: document.getElementById('team2-player3'),
             
             // Other controls
             replayDescription: document.getElementById('replay-description'),
@@ -918,7 +1133,23 @@
             rankingFileName: document.getElementById('ranking-file-name'),
             rankingFileUpdated: document.getElementById('ranking-file-updated'),
             rankingFileSize: document.getElementById('ranking-file-size'),
-            rankingUploadStatus: document.getElementById('ranking-upload-status')
+            rankingUploadStatus: document.getElementById('ranking-upload-status'),
+
+            // Timer controls
+            timerSection: document.getElementById('timer-section'),
+            timerDisplay: document.getElementById('timer-display'),
+            timerStartBtn: document.getElementById('timer-start-btn'),
+            timerPauseBtn: document.getElementById('timer-pause-btn'),
+            timerResetBtn: document.getElementById('timer-reset-btn'),
+            timerSetBtn: document.getElementById('timer-set-btn'),
+            timerMinutesInput: document.getElementById('timer-minutes-input'),
+            timerSecondsInput: document.getElementById('timer-seconds-input'),
+            timerStatus: document.getElementById('timer-status'),
+
+            // Overlay display options
+            toggleShowSponsors: document.getElementById('toggle-show-sponsors'),
+            toggleShowMatchDetails: document.getElementById('toggle-show-match-details'),
+            toggleShowHostedBy: document.getElementById('toggle-show-hosted-by')
         };
 
         const tabButtons = document.querySelectorAll('.tab-button');
@@ -927,6 +1158,14 @@
 
         let lastOverlaySettings = null;
         let lastRankingSourceMeta = null;
+        
+        let currentSport = SPORT_TYPES.FOOTVOLLEY;
+        let timerState = null;
+
+        const playerInputMap = {
+            1: [elements.team1Player1, elements.team1Player2, elements.team1Player3],
+            2: [elements.team2Player1, elements.team2Player2, elements.team2Player3]
+        };
 
         tabButtons.forEach((button) => {
             button.addEventListener('click', () => {
@@ -976,6 +1215,238 @@
             if (message) {
                 target.classList.add(variant);
             }
+        }
+
+        function clampNumber(value, min, max) {
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) {
+                return min;
+            }
+            return Math.min(Math.max(numeric, min), max);
+        }
+
+        function getPlayerSlotsForSport(sport) {
+            return sport === SPORT_TYPES.FUTSAL ? 3 : 2;
+        }
+
+        function normalizePlayerList(list, sport) {
+            const slots = getPlayerSlotsForSport(sport);
+            const values = Array.isArray(list) ? list.slice(0, slots) : [];
+            while (values.length < slots) {
+                values.push('');
+            }
+            return values;
+        }
+
+        function collectPlayersForTeam(team) {
+            const slots = getPlayerSlotsForSport(currentSport);
+            const inputs = playerInputMap[team] || [];
+            const names = [];
+            for (let index = 0; index < slots; index++) {
+                const input = inputs[index];
+                names.push(input ? input.value.trim() : '');
+            }
+            return names;
+        }
+
+        function setSportOptionSelected(sport) {
+            if (!elements.sportOptionLabels) {
+                return;
+            }
+
+            elements.sportOptionLabels.forEach((label) => {
+                if (!label) {
+                    return;
+                }
+                const optionSport = label.dataset?.sport;
+                const isSelected = optionSport === sport;
+                label.classList.toggle('sport-option--selected', isSelected);
+                const radio = label.querySelector('input[name="sport-mode"]');
+                if (radio) {
+                    radio.checked = isSelected;
+                }
+            });
+        }
+
+        function setTimerStatus(message, variant = 'info') {
+            const target = elements.timerStatus;
+            if (!target) {
+                return;
+            }
+            target.textContent = message || '';
+            target.classList.remove('info', 'success', 'error');
+            if (message) {
+                target.classList.add(variant);
+            }
+        }
+
+        function formatTimerDisplay(minutes, seconds) {
+            const safeMinutes = clampNumber(minutes, 0, 99);
+            const safeSeconds = clampNumber(seconds, 0, 59);
+            return `${String(safeMinutes).padStart(2, '0')}:${String(safeSeconds).padStart(2, '0')}`;
+        }
+
+        function updateTimerUI(timer, options = {}) {
+            if (!timer) {
+                return;
+            }
+
+            const { silent = false, keepInputs = false } = options;
+            timerState = {
+                running: Boolean(timer.running),
+                minutes: clampNumber(timer.minutes, 0, 99),
+                seconds: clampNumber(timer.seconds, 0, 59),
+                remainingMs: Number(timer.remainingMs) || 0,
+                durationMs: Number(timer.durationMs) || (15 * 60 * 1000)
+            };
+
+            if (elements.timerDisplay) {
+                elements.timerDisplay.textContent = formatTimerDisplay(timerState.minutes, timerState.seconds);
+            }
+
+            if (!keepInputs) {
+                if (elements.timerMinutesInput) {
+                    elements.timerMinutesInput.value = timerState.minutes;
+                }
+                if (elements.timerSecondsInput) {
+                    elements.timerSecondsInput.value = timerState.seconds;
+                }
+            }
+
+            if (elements.timerStartBtn) {
+                elements.timerStartBtn.disabled = timerState.running;
+            }
+            if (elements.timerPauseBtn) {
+                elements.timerPauseBtn.disabled = !timerState.running;
+            }
+
+            if (!silent) {
+                setTimerStatus(timerState.running ? 'Timer running.' : 'Timer paused.', timerState.running ? 'info' : 'success');
+            }
+        }
+
+        function applySportUI(sport) {
+            const normalized = sport === SPORT_TYPES.FUTSAL ? SPORT_TYPES.FUTSAL : SPORT_TYPES.FOOTVOLLEY;
+            currentSport = normalized;
+            document.body.classList.remove('sport-footvolley', 'sport-futsal');
+            document.body.classList.add(`sport-${normalized}`);
+            setSportOptionSelected(normalized);
+
+            const isFutsal = normalized === SPORT_TYPES.FUTSAL;
+
+            if (elements.showSetsToggle) {
+                elements.showSetsToggle.disabled = isFutsal;
+                if (isFutsal) {
+                    elements.showSetsToggle.checked = false;
+                }
+            }
+
+            updateSetManagementVisibility(!isFutsal && Boolean(currentGameState.setsEnabled));
+
+            if (elements.timerSection) {
+                elements.timerSection.style.display = isFutsal ? 'block' : 'none';
+            }
+
+            if (!isFutsal) {
+                setTimerStatus('Timer controls available in futsal mode.', 'info');
+            } else if (timerState) {
+                updateTimerUI(timerState, { silent: true });
+            }
+        }
+
+        function emitSportUpdate(sport) {
+            const normalized = sport === SPORT_TYPES.FUTSAL ? SPORT_TYPES.FUTSAL : SPORT_TYPES.FOOTVOLLEY;
+            if (normalized === currentSport) {
+                return;
+            }
+
+            socket.emit('updateSport', { sport: normalized }, (response) => {
+                if (!response || response.ok === false) {
+                    console.error('Sport update failed:', response?.error);
+                    setSportOptionSelected(currentSport);
+                    if (response?.error) {
+                        alert(response.error);
+                    }
+                    return;
+                }
+
+                currentGameState.sport = response.sport || normalized;
+                applySportUI(currentGameState.sport);
+            });
+        }
+
+        function emitDisplayOptionsUpdate() {
+            const payload = {
+                showSponsors: Boolean(elements.toggleShowSponsors?.checked),
+                showMatchDetails: Boolean(elements.toggleShowMatchDetails?.checked),
+                showHostedBy: Boolean(elements.toggleShowHostedBy?.checked)
+            };
+
+            socket.emit('updateDisplayOptions', payload, (response) => {
+                if (!response || response.ok === false) {
+                    console.error('Display options update failed:', response?.error);
+                }
+            });
+        }
+
+        function updateDisplayOptionsUI(options) {
+            const config = {
+                showSponsors: Boolean(options?.showSponsors),
+                showMatchDetails: Boolean(options?.showMatchDetails),
+                showHostedBy: Boolean(options?.showHostedBy)
+            };
+
+            if (elements.toggleShowSponsors) {
+                elements.toggleShowSponsors.checked = config.showSponsors;
+            }
+            if (elements.toggleShowMatchDetails) {
+                elements.toggleShowMatchDetails.checked = config.showMatchDetails;
+            }
+            if (elements.toggleShowHostedBy) {
+                elements.toggleShowHostedBy.checked = config.showHostedBy;
+            }
+        }
+
+        function sendTimerCommand(action, extra = {}, successMessage) {
+            if (currentSport !== SPORT_TYPES.FUTSAL) {
+                setTimerStatus('Switch to futsal mode to control the timer.', 'info');
+                return;
+            }
+
+            const payload = { action, ...extra };
+            setTimerStatus('Sending timer command...', 'info');
+
+            socket.emit('timerControl', payload, (response) => {
+                if (!response || response.ok === false) {
+                    setTimerStatus(response?.error || 'Timer action failed.', 'error');
+                    return;
+                }
+
+                if (response.timer) {
+                    updateTimerUI(response.timer, { silent: true });
+                }
+
+                if (successMessage) {
+                    setTimerStatus(successMessage, 'success');
+                } else {
+                    switch (action) {
+                        case 'start':
+                            setTimerStatus('Timer running.', 'success');
+                            break;
+                        case 'pause':
+                            setTimerStatus('Timer paused.', 'success');
+                            break;
+                        case 'reset':
+                            setTimerStatus('Timer reset to 15:00.', 'success');
+                            break;
+                        case 'set':
+                            setTimerStatus('Timer updated.', 'success');
+                            break;
+                        default:
+                            setTimerStatus('Timer updated.', 'success');
+                    }
+                }
+            });
         }
 
         function renderRankingSourceMeta(meta) {
@@ -1138,6 +1609,17 @@
             console.log('📁 Ranking source update received:', meta);
             renderRankingSourceMeta(meta);
         });
+
+        socket.on('displayOptionsUpdate', (options) => {
+            console.log('🧩 Display options update received:', options);
+            updateDisplayOptionsUI(options);
+        });
+
+        socket.on('timerUpdate', (timer) => {
+            timerState = timer;
+            const keepInputs = document.activeElement === elements.timerMinutesInput || document.activeElement === elements.timerSecondsInput;
+            updateTimerUI(timer, { silent: true, keepInputs });
+        });
         
         /**
          * UPDATE USER INTERFACE
@@ -1145,6 +1627,9 @@
          */
         function updateUI() {
             const state = currentGameState || {};
+            const sport = state.sport || SPORT_TYPES.FOOTVOLLEY;
+
+            applySportUI(sport);
 
             if (state.team1) {
                 elements.team1Name.value = state.team1.name || '';
@@ -1152,8 +1637,16 @@
                 elements.team1Display.textContent = state.team1.score || 0;
 
                 if (Array.isArray(state.team1.players)) {
-                    elements.team1Player1.value = state.team1.players[0] || '';
-                    elements.team1Player2.value = state.team1.players[1] || '';
+                    const players = normalizePlayerList(state.team1.players, sport);
+                    if (elements.team1Player1) {
+                        elements.team1Player1.value = players[0] || '';
+                    }
+                    if (elements.team1Player2) {
+                        elements.team1Player2.value = players[1] || '';
+                    }
+                    if (elements.team1Player3) {
+                        elements.team1Player3.value = players[2] || '';
+                    }
                 }
             }
 
@@ -1163,8 +1656,16 @@
                 elements.team2Display.textContent = state.team2.score || 0;
 
                 if (Array.isArray(state.team2.players)) {
-                    elements.team2Player1.value = state.team2.players[0] || '';
-                    elements.team2Player2.value = state.team2.players[1] || '';
+                    const players = normalizePlayerList(state.team2.players, sport);
+                    if (elements.team2Player1) {
+                        elements.team2Player1.value = players[0] || '';
+                    }
+                    if (elements.team2Player2) {
+                        elements.team2Player2.value = players[1] || '';
+                    }
+                    if (elements.team2Player3) {
+                        elements.team2Player3.value = players[2] || '';
+                    }
                 }
             }
 
@@ -1178,6 +1679,14 @@
             updateSetManagementVisibility(setsEnabled);
             updateSetScoresDisplay();
             updateReplayQueueDisplay();
+
+            if (state.displayOptions) {
+                updateDisplayOptionsUI(state.displayOptions);
+            }
+
+            if (state.timer) {
+                updateTimerUI(state.timer, { silent: true, keepInputs: false });
+            }
 
             if (state.overlaySettings && Array.isArray(state.overlaySettings.divisionOptions)) {
                 renderDivisionOptions(
@@ -1238,7 +1747,8 @@
                 return;
             }
 
-            elements.setManagementSection.style.display = enabled ? 'block' : 'none';
+            const shouldShow = Boolean(enabled) && currentSport !== SPORT_TYPES.FUTSAL;
+            elements.setManagementSection.style.display = shouldShow ? 'block' : 'none';
         }
 
         function renderDivisionOptions(options, selectedTournament, selectedRanking) {
@@ -1460,6 +1970,27 @@
             input.addEventListener('change', emitOverlaySettingsUpdate);
         });
 
+        if (elements.sportModeInputs && typeof elements.sportModeInputs.forEach === 'function') {
+            elements.sportModeInputs.forEach((input) => {
+                input.addEventListener('change', (event) => {
+                    if (!event.target.checked) {
+                        return;
+                    }
+                    emitSportUpdate(event.target.value);
+                });
+            });
+        }
+
+        [
+            elements.toggleShowSponsors,
+            elements.toggleShowMatchDetails,
+            elements.toggleShowHostedBy
+        ].forEach((checkbox) => {
+            if (checkbox) {
+                checkbox.addEventListener('change', emitDisplayOptionsUpdate);
+            }
+        });
+
         if (elements.rankingDivision) {
             elements.rankingDivision.addEventListener('change', () => emitRankingSettingsUpdate());
         }
@@ -1478,6 +2009,32 @@
                 if (file) {
                     setRankingStatusMessage(`Selected ${file.name} (${formatBytes(file.size)})`, 'info');
                 }
+            });
+        }
+
+        if (elements.timerStartBtn) {
+            elements.timerStartBtn.addEventListener('click', () => sendTimerCommand('start'));
+        }
+
+        if (elements.timerPauseBtn) {
+            elements.timerPauseBtn.addEventListener('click', () => sendTimerCommand('pause'));
+        }
+
+        if (elements.timerResetBtn) {
+            elements.timerResetBtn.addEventListener('click', () => sendTimerCommand('reset'));
+        }
+
+        if (elements.timerSetBtn) {
+            elements.timerSetBtn.addEventListener('click', () => {
+                const minutes = clampNumber(elements.timerMinutesInput?.value, 0, 59);
+                const seconds = clampNumber(elements.timerSecondsInput?.value, 0, 59);
+                if (elements.timerMinutesInput) {
+                    elements.timerMinutesInput.value = minutes;
+                }
+                if (elements.timerSecondsInput) {
+                    elements.timerSecondsInput.value = seconds;
+                }
+                sendTimerCommand('set', { minutes, seconds }, 'Timer updated manually.');
             });
         }
         
@@ -1652,23 +2209,32 @@
         
         // Score changes (when typed directly)
         elements.team1Score.addEventListener('change', () => {
-            const score = parseInt(elements.team1Score.value) || 0;
+            const score = parseInt(elements.team1Score.value, 10) || 0;
             socket.emit('updateScore', { team: 1, score });
         });
         
         elements.team2Score.addEventListener('change', () => {
-            const score = parseInt(elements.team2Score.value) || 0;
+            const score = parseInt(elements.team2Score.value, 10) || 0;
             socket.emit('updateScore', { team: 2, score });
         });
         
         // Player name changes
         function updatePlayerNames(team) {
-            const players = team === 1 ? 
-                [elements.team1Player1.value, elements.team1Player2.value] :
-                [elements.team2Player1.value, elements.team2Player2.value];
-            
+            const players = collectPlayersForTeam(team);
             socket.emit('updatePlayerNames', { team, players });
         }
+
+        (playerInputMap[1] || []).forEach((input) => {
+            if (input) {
+                input.addEventListener('change', () => updatePlayerNames(1));
+            }
+        });
+
+        (playerInputMap[2] || []).forEach((input) => {
+            if (input) {
+                input.addEventListener('change', () => updatePlayerNames(2));
+            }
+        });
         
         // Tournament info update function
         function updateTournamentInfo() {
@@ -1686,6 +2252,12 @@
         // Sets mode toggle function
         function toggleSetsMode() {
             if (!elements.showSetsToggle) {
+                return;
+            }
+
+            if (currentSport === SPORT_TYPES.FUTSAL) {
+                elements.showSetsToggle.checked = false;
+                updateSetManagementVisibility(false);
                 return;
             }
 
@@ -1734,6 +2306,7 @@
         });
 
     fetchRankingMeta(false);
+    applySportUI(currentSport);
         
         console.log('🎮 Referee Control Panel loaded');
         console.log('⌨️  Keyboard shortcuts: 1/2 = add point, R = replay, T = rankings, ESC = reset scores');

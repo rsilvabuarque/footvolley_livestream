@@ -72,34 +72,219 @@ const rankingUpload = multer({
     }
 });
 
-const defaultOverlaySettings = {
-    textScale: 100,
-    divisionOptions: ['Male A', 'Male B', 'Female A', 'Female C', 'Mixed Duos'],
-    hostLogoScale: 100,
-    sponsorLogoScale: 100,
-    matchInfoScale: 100,
-    colorPalette: {
-        primaryPink: { c: 0, m: 58, y: 38, k: 0 },
-        primaryOrange: { c: 0, m: 46, y: 76, k: 0 },
-        primaryYellow: { c: 0, m: 15, y: 76, k: 0 },
-        primaryGreen: { c: 48, m: 0, y: 39, k: 19 },
-        primaryBlue: { c: 69, m: 39, y: 0, k: 0 },
-        primaryPurple: { c: 39, m: 52, y: 0, k: 0 }
+const SPORT_TYPES = {
+    FOOTVOLLEY: 'footvolley',
+    FUTSAL: 'futsal'
+};
+
+const defaultOverlaySettingsBySport = {
+    [SPORT_TYPES.FOOTVOLLEY]: {
+        textScale: 100,
+        divisionOptions: ['Male A', 'Male B', 'Female A', 'Female C', 'Mixed Duos'],
+        hostLogoScale: 100,
+        sponsorLogoScale: 100,
+        matchInfoScale: 100,
+        colorPalette: {
+            primaryPink: { c: 0, m: 58, y: 38, k: 0 },
+            primaryOrange: { c: 0, m: 46, y: 76, k: 0 },
+            primaryYellow: { c: 0, m: 15, y: 76, k: 0 },
+            primaryGreen: { c: 48, m: 0, y: 39, k: 19 },
+            primaryBlue: { c: 69, m: 39, y: 0, k: 0 },
+            primaryPurple: { c: 39, m: 52, y: 0, k: 0 }
+        }
+    },
+    [SPORT_TYPES.FUTSAL]: {
+        textScale: 100,
+        divisionOptions: ['Open League'],
+        hostLogoScale: 100,
+        sponsorLogoScale: 100,
+        matchInfoScale: 100,
+        colorPalette: {
+            primaryPink: { c: 67, m: 52, y: 0, k: 46 }, // Deep blue primary hue
+            primaryOrange: { c: 67, m: 52, y: 0, k: 46 },
+            primaryYellow: { c: 0, m: 16, y: 75, k: 9 }, // Gold accent
+            primaryGreen: { c: 0, m: 0, y: 0, k: 0 },
+            primaryBlue: { c: 67, m: 52, y: 0, k: 46 },
+            primaryPurple: { c: 0, m: 0, y: 0, k: 0 }
+        }
     }
 };
+
+const FUTSAL_DEFAULT_TIMER_MS = 15 * 60 * 1000;
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 const toNumeric = (value, fallback) => {
     const number = Number(value);
     return Number.isFinite(number) ? number : fallback;
 };
-const cloneOverlaySettings = () => JSON.parse(JSON.stringify(defaultOverlaySettings));
+
+function cloneOverlaySettingsForSport(sport = SPORT_TYPES.FOOTVOLLEY) {
+    const source = defaultOverlaySettingsBySport[sport] || defaultOverlaySettingsBySport[SPORT_TYPES.FOOTVOLLEY];
+    return JSON.parse(JSON.stringify(source));
+}
+
+function getPlayerSlotsForSport(sport = SPORT_TYPES.FOOTVOLLEY) {
+    return sport === SPORT_TYPES.FUTSAL ? 3 : 2;
+}
+
+function normalizePlayers(players, sport = SPORT_TYPES.FOOTVOLLEY) {
+    const required = getPlayerSlotsForSport(sport);
+    const sanitized = Array.isArray(players) ? players.slice(0, required) : [];
+    while (sanitized.length < required) {
+        sanitized.push('');
+    }
+    return sanitized;
+}
+
+function createDefaultTimerState() {
+    const minutes = Math.floor(FUTSAL_DEFAULT_TIMER_MS / 60000);
+    return {
+        running: false,
+        durationMs: FUTSAL_DEFAULT_TIMER_MS,
+        remainingMs: FUTSAL_DEFAULT_TIMER_MS,
+        lastUpdatedAt: null,
+        minutes,
+        seconds: 0
+    };
+}
+
+function syncTimerDisplayFields(timer) {
+    if (!timer) {
+        return;
+    }
+
+    const remaining = Math.max(0, Number(timer.remainingMs) || 0);
+    const totalSeconds = Math.floor(remaining / 1000);
+    timer.minutes = Math.floor(totalSeconds / 60);
+    timer.seconds = totalSeconds % 60;
+}
 
 const rankingCache = {
     workbook: null,
     sourceMtime: null,
     division: new Map()
 };
+
+let timerInterval = null;
+
+function ensureTimerState() {
+    if (!gameState.timer) {
+        gameState.timer = createDefaultTimerState();
+    }
+    syncTimerDisplayFields(gameState.timer);
+    return gameState.timer;
+}
+
+function clearTimerInterval() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+}
+
+function getTimerPayload() {
+    const timer = ensureTimerState();
+    return {
+        running: Boolean(timer.running),
+        durationMs: Number(timer.durationMs) || FUTSAL_DEFAULT_TIMER_MS,
+        remainingMs: Math.max(0, Number(timer.remainingMs) || 0),
+        minutes: Number(timer.minutes) || 0,
+        seconds: Number(timer.seconds) || 0
+    };
+}
+
+function broadcastTimerUpdate() {
+    io.emit('timerUpdate', getTimerPayload());
+}
+
+function resetFutsalTimer() {
+    const timer = ensureTimerState();
+    clearTimerInterval();
+    timer.running = false;
+    timer.durationMs = FUTSAL_DEFAULT_TIMER_MS;
+    timer.remainingMs = FUTSAL_DEFAULT_TIMER_MS;
+    timer.lastUpdatedAt = null;
+    syncTimerDisplayFields(timer);
+    broadcastTimerUpdate();
+}
+
+function pauseTimer() {
+    const timer = ensureTimerState();
+    if (!timer.running) {
+        return;
+    }
+    const now = Date.now();
+    if (timer.lastUpdatedAt) {
+        const elapsed = Math.max(0, now - timer.lastUpdatedAt);
+        timer.remainingMs = Math.max(0, timer.remainingMs - elapsed);
+    }
+    clearTimerInterval();
+    timer.running = false;
+    timer.lastUpdatedAt = null;
+    syncTimerDisplayFields(timer);
+    broadcastTimerUpdate();
+}
+
+function tickFutsalTimer() {
+    const timer = ensureTimerState();
+    if (!timer.running) {
+        clearTimerInterval();
+        return;
+    }
+
+    const now = Date.now();
+    const elapsed = timer.lastUpdatedAt ? Math.max(0, now - timer.lastUpdatedAt) : 0;
+    timer.lastUpdatedAt = now;
+    timer.remainingMs = Math.max(0, timer.remainingMs - elapsed);
+    syncTimerDisplayFields(timer);
+
+    if (timer.remainingMs <= 0) {
+        timer.running = false;
+        clearTimerInterval();
+    }
+
+    broadcastTimerUpdate();
+}
+
+function startFutsalTimer() {
+    const timer = ensureTimerState();
+    if (gameState.sport !== SPORT_TYPES.FUTSAL) {
+        return;
+    }
+
+    if (timer.remainingMs <= 0) {
+        timer.remainingMs = timer.durationMs;
+    }
+
+    if (timer.running) {
+        return;
+    }
+
+    timer.running = true;
+    timer.lastUpdatedAt = Date.now();
+    syncTimerDisplayFields(timer);
+    broadcastTimerUpdate();
+
+    clearTimerInterval();
+    timerInterval = setInterval(tickFutsalTimer, 1000);
+}
+
+function setTimerManually(minutes, seconds) {
+    const timer = ensureTimerState();
+    const minutesNumeric = clamp(Number(minutes) || 0, 0, 59);
+    const secondsNumeric = clamp(Number(seconds) || 0, 0, 59);
+    const totalMs = Math.max(0, (minutesNumeric * 60 + secondsNumeric) * 1000);
+
+    clearTimerInterval();
+    if (totalMs > 0) {
+        timer.durationMs = totalMs;
+    }
+    timer.remainingMs = totalMs;
+    timer.running = false;
+    timer.lastUpdatedAt = null;
+    syncTimerDisplayFields(timer);
+    broadcastTimerUpdate();
+}
 
 function ensureRankingUploadDir() {
     if (!fs.existsSync(RANKING_UPLOAD_DIR)) {
@@ -467,20 +652,31 @@ app.use(express.static('public')); // Serve files from 'public' folder
  * This stores all the current information about the match
  * When referee changes something, this gets updated and sent to overlay
  */
+const overlaySettingsBySport = {
+    [SPORT_TYPES.FOOTVOLLEY]: cloneOverlaySettingsForSport(SPORT_TYPES.FOOTVOLLEY),
+    [SPORT_TYPES.FUTSAL]: cloneOverlaySettingsForSport(SPORT_TYPES.FUTSAL)
+};
+
 let gameState = {
+    sport: SPORT_TYPES.FOOTVOLLEY,
+    displayOptions: {
+        showSponsors: false,
+        showMatchDetails: false,
+        showHostedBy: false
+    },
     // Team information
     team1: { 
         name: 'Team 1', 
         score: 0,
         setsWon: 0,
         // Player names for more detailed display
-        players: ['Player 1A', 'Player 1B']
+        players: normalizePlayers(['Player 1A', 'Player 1B'], SPORT_TYPES.FOOTVOLLEY)
     },
     team2: { 
         name: 'Team 2', 
         score: 0,
         setsWon: 0,
-        players: ['Player 2A', 'Player 2B']
+        players: normalizePlayers(['Player 2A', 'Player 2B'], SPORT_TYPES.FOOTVOLLEY)
     },
     
     // Match information
@@ -516,13 +712,17 @@ let gameState = {
     },
 
     // Overlay look-and-feel configuration
-    overlaySettings: cloneOverlaySettings(),
+    overlaySettingsBySport,
+    overlaySettings: overlaySettingsBySport[SPORT_TYPES.FOOTVOLLEY],
 
     // Ranking overlay defaults
     rankingSettings: {
         division: 'Male A',
         phase: 'group'
-    }
+    },
+
+    // Timer defaults (primarily for futsal)
+    timer: createDefaultTimerState()
 };
 
 /**
@@ -564,6 +764,8 @@ io.on('connection', (socket) => {
     socket.emit('gameStateUpdate', gameState);
     socket.emit('overlaySettingsUpdate', gameState.overlaySettings);
     socket.emit('rankingSourceUpdate', getRankingMetaForClient());
+    socket.emit('displayOptionsUpdate', gameState.displayOptions);
+    socket.emit('timerUpdate', getTimerPayload());
     
     /**
      * SCORE UPDATES
@@ -606,9 +808,9 @@ io.on('connection', (socket) => {
         console.log(`👥 Player names update: Team ${data.team}`);
         
         if (data.team === 1) {
-            gameState.team1.players = data.players || ['Player 1A', 'Player 1B'];
+            gameState.team1.players = normalizePlayers(data.players, gameState.sport);
         } else if (data.team === 2) {
-            gameState.team2.players = data.players || ['Player 2A', 'Player 2B'];
+            gameState.team2.players = normalizePlayers(data.players, gameState.sport);
         }
         
         io.emit('gameStateUpdate', gameState);
@@ -642,6 +844,13 @@ io.on('connection', (socket) => {
     socket.on('updateSetsMode', (data) => {
         console.log('📊 Sets mode update:', data.enabled);
         
+        if (gameState.sport === SPORT_TYPES.FUTSAL) {
+            console.log('⚠️  Ignoring sets mode toggle in futsal mode');
+            gameState.setsEnabled = false;
+            io.emit('gameStateUpdate', gameState);
+            return;
+        }
+
         // Update the game state
         gameState.setsEnabled = data.enabled;
         
@@ -674,10 +883,12 @@ io.on('connection', (socket) => {
             return;
         }
 
-        if (!gameState.overlaySettings) {
-            gameState.overlaySettings = cloneOverlaySettings();
+        const currentSport = gameState.sport || SPORT_TYPES.FOOTVOLLEY;
+        if (!gameState.overlaySettingsBySport[currentSport]) {
+            gameState.overlaySettingsBySport[currentSport] = cloneOverlaySettingsForSport(currentSport);
         }
 
+        gameState.overlaySettings = gameState.overlaySettingsBySport[currentSport];
         const settings = gameState.overlaySettings;
         let divisionChanged = false;
 
@@ -713,9 +924,10 @@ io.on('connection', (socket) => {
                     divisionChanged = true;
                 }
             } else {
-                settings.divisionOptions = [...defaultOverlaySettings.divisionOptions];
-                if (!settings.divisionOptions.includes(gameState.tournament.division)) {
-                    gameState.tournament.division = settings.divisionOptions[0];
+                const defaults = defaultOverlaySettingsBySport[currentSport]?.divisionOptions || [];
+                settings.divisionOptions = [...defaults];
+                if (defaults.length && !defaults.includes(gameState.tournament.division)) {
+                    gameState.tournament.division = defaults[0];
                     divisionChanged = true;
                 }
             }
@@ -735,12 +947,134 @@ io.on('connection', (socket) => {
             });
         }
 
+        gameState.overlaySettingsBySport[currentSport] = settings;
         io.emit('overlaySettingsUpdate', settings);
         io.emit('gameStateUpdate', gameState);
 
         if (divisionChanged) {
             io.emit('tournamentInfoUpdate', gameState.tournament);
         }
+    });
+
+    socket.on('updateDisplayOptions', (payload = {}, ack) => {
+        const callback = typeof ack === 'function' ? ack : () => {};
+        const current = gameState.displayOptions || {
+            showSponsors: false,
+            showMatchDetails: false,
+            showHostedBy: false
+        };
+
+        const updated = {
+            showSponsors: payload.showSponsors !== undefined ? Boolean(payload.showSponsors) : Boolean(current.showSponsors),
+            showMatchDetails: payload.showMatchDetails !== undefined ? Boolean(payload.showMatchDetails) : Boolean(current.showMatchDetails),
+            showHostedBy: payload.showHostedBy !== undefined ? Boolean(payload.showHostedBy) : Boolean(current.showHostedBy)
+        };
+
+        const changed =
+            updated.showSponsors !== Boolean(current.showSponsors) ||
+            updated.showMatchDetails !== Boolean(current.showMatchDetails) ||
+            updated.showHostedBy !== Boolean(current.showHostedBy);
+
+        gameState.displayOptions = updated;
+
+        if (changed) {
+            io.emit('displayOptionsUpdate', gameState.displayOptions);
+            io.emit('gameStateUpdate', gameState);
+        }
+
+        callback({ ok: true, displayOptions: gameState.displayOptions });
+    });
+
+    socket.on('updateSport', (payload = {}, ack) => {
+        const callback = typeof ack === 'function' ? ack : () => {};
+        const requested = typeof payload.sport === 'string' ? payload.sport.toLowerCase() : '';
+        const validSports = new Set(Object.values(SPORT_TYPES));
+
+        if (!validSports.has(requested)) {
+            return callback({ ok: false, error: 'Unsupported sport selected.' });
+        }
+
+        if (requested === gameState.sport) {
+            return callback({ ok: true, sport: gameState.sport, overlaySettings: gameState.overlaySettings });
+        }
+
+        console.log(`⚙️  Switching sport mode to ${requested}`);
+        gameState.sport = requested;
+
+        if (!gameState.overlaySettingsBySport[requested]) {
+            gameState.overlaySettingsBySport[requested] = cloneOverlaySettingsForSport(requested);
+        }
+
+        gameState.overlaySettings = gameState.overlaySettingsBySport[requested];
+        gameState.team1.players = normalizePlayers(gameState.team1.players, requested);
+        gameState.team2.players = normalizePlayers(gameState.team2.players, requested);
+
+        if (requested === SPORT_TYPES.FUTSAL) {
+            gameState.setsEnabled = false;
+            gameState.maxSets = 1;
+            gameState.currentSet = 1;
+            gameState.setScores = {
+                team1: [0],
+                team2: [0]
+            };
+            resetFutsalTimer();
+        } else {
+            gameState.maxSets = Math.max(gameState.maxSets || 3, 3);
+            gameState.setsEnabled = false;
+            gameState.currentSet = 1;
+            gameState.setScores = {
+                team1: [0, 0, 0, 0, 0],
+                team2: [0, 0, 0, 0, 0]
+            };
+            pauseTimer();
+            resetFutsalTimer();
+        }
+
+        const defaults = gameState.overlaySettings?.divisionOptions || [];
+        if (defaults.length) {
+            gameState.tournament.division = defaults[0];
+        }
+
+        io.emit('overlaySettingsUpdate', gameState.overlaySettings);
+        io.emit('displayOptionsUpdate', gameState.displayOptions);
+        io.emit('gameStateUpdate', gameState);
+        broadcastTimerUpdate();
+
+        callback({ ok: true, sport: gameState.sport, overlaySettings: gameState.overlaySettings });
+    });
+
+    socket.on('timerControl', (payload = {}, ack) => {
+        const callback = typeof ack === 'function' ? ack : () => {};
+        const action = typeof payload.action === 'string' ? payload.action.toLowerCase() : '';
+
+        if (gameState.sport !== SPORT_TYPES.FUTSAL) {
+            pauseTimer();
+            return callback({ ok: false, error: 'Timer controls are only available in futsal mode.' });
+        }
+
+        try {
+            switch (action) {
+                case 'start':
+                    startFutsalTimer();
+                    break;
+                case 'pause':
+                    pauseTimer();
+                    break;
+                case 'reset':
+                    resetFutsalTimer();
+                    break;
+                case 'set':
+                    setTimerManually(payload.minutes, payload.seconds);
+                    break;
+                default:
+                    return callback({ ok: false, error: 'Unsupported timer action.' });
+            }
+        } catch (error) {
+            console.error('❌ Timer control error:', error.message);
+            return callback({ ok: false, error: error.message || 'Timer action failed.' });
+        }
+
+        callback({ ok: true, timer: getTimerPayload() });
     });
 
     socket.on('updateRankingSettings', async (payload = {}, ack) => {
@@ -894,16 +1228,28 @@ io.on('connection', (socket) => {
         gameState.team2.score = 0;
         gameState.team2.setsWon = 0;
         gameState.currentSet = 1;
-        gameState.setScores = {
-            team1: [0, 0, 0],
-            team2: [0, 0, 0]
-        };
-        gameState.setsEnabled = false;
+        if (gameState.sport === SPORT_TYPES.FUTSAL) {
+            gameState.setScores = {
+                team1: [0],
+                team2: [0]
+            };
+            gameState.setsEnabled = false;
+            resetFutsalTimer();
+        } else {
+            gameState.setScores = {
+                team1: [0, 0, 0, 0, 0],
+                team2: [0, 0, 0, 0, 0]
+            };
+            gameState.setsEnabled = false;
+        }
         gameState.replayQueue = [];
         gameState.showReplay = false;
         gameState.showRankings = false;
+        gameState.team1.players = normalizePlayers([], gameState.sport);
+        gameState.team2.players = normalizePlayers([], gameState.sport);
         
         io.emit('gameStateUpdate', gameState);
+        broadcastTimerUpdate();
     });
     
     socket.on('togglePlayerNames', () => {
