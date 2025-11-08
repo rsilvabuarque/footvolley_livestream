@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>San Diego Footvolley Open - Rankings</title>
+    <style>
+        @font-face {
+            font-family: 'DayPosterBlack';
+            src: url('/fonts/DAYPBL__.TTF') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'AcuminVariable';
+            src: url('/fonts/Acumin-Variable-Concept.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+        :root {
+            --primary-pink: #FF6B9D;
+            --primary-orange: #FF8A3D;
+            --primary-yellow: #FFD93D;
+            --primary-green: #6BCF7F;
+            --primary-blue: #4F9BFF;
+            --primary-purple: #9B7BFF;
+            --overlay-text-scale: 1;
+            --host-logo-scale: 1;
+            --sponsor-logo-scale: 1;
+            --match-info-scale: 1;
+            --surface-bg: rgba(8, 12, 28, 0.92);
+            --surface-border: rgba(255, 255, 255, 0.12);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            color: #ffffff;
+            font-family: 'AcuminVariable', 'Segoe UI', sans-serif;
+            overflow: hidden;
+        }
+
+        .status-banner {
+            position: absolute;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 18px;
+            border-radius: 9999px;
+            background: rgba(10, 16, 32, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            font-size: 14px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            display: none;
+            pointer-events: none;
+        }
+
+        .status-banner.loading {
+            border-color: var(--primary-yellow);
+            color: var(--primary-yellow);
+        }
+
+        .status-banner.error {
+            border-color: #ff6b6b;
+            background: rgba(48, 8, 16, 0.92);
+            color: #ffdede;
+        }
+
+        .ranking-overlay {
+            position: absolute;
+            top: 5vh;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 88vw;
+            max-width: 1500px;
+            display: none;
+            flex-direction: column;
+            gap: 24px;
+            background: linear-gradient(135deg, rgba(8, 12, 28, 0.92) 0%, rgba(12, 20, 40, 0.92) 100%);
+            border: 3px solid var(--primary-pink);
+            border-radius: 28px;
+            padding: calc(24px * var(--overlay-text-scale));
+            box-shadow: 0 22px 48px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(14px);
+            pointer-events: none;
+        }
+
+        .ranking-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .ranking-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .ranking-meta .label {
+            font-size: calc(13px * var(--overlay-text-scale));
+            letter-spacing: 0.22em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.65);
+        }
+
+        .ranking-meta h1 {
+            margin: 0;
+            font-size: calc(46px * var(--overlay-text-scale));
+            line-height: 1;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .phase-pill {
+            margin-left: auto;
+            background: linear-gradient(120deg, var(--primary-orange), var(--primary-yellow));
+            color: #0f162c;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.22em;
+            padding: 12px 24px;
+            border-radius: 9999px;
+            font-size: calc(15px * var(--overlay-text-scale));
+        }
+
+        .ranking-content {
+            display: grid;
+            grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+            gap: 28px;
+            align-items: stretch;
+        }
+
+        .ranking-content.single-column {
+            grid-template-columns: 1fr;
+        }
+
+        .section-title {
+            margin: 0 0 14px;
+            font-size: calc(28px * var(--overlay-text-scale));
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+        }
+
+        .table-wrapper,
+        .bracket-wrapper {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 18px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: calc(16px * var(--overlay-text-scale));
+        }
+
+        thead th {
+            text-align: left;
+            font-size: calc(13px * var(--overlay-text-scale));
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            color: rgba(255, 255, 255, 0.75);
+            padding: 10px 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        th.numeric,
+        td.numeric {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        tbody td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: rgba(255, 255, 255, 0.92);
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr.leader {
+            background: rgba(255, 138, 61, 0.18);
+        }
+
+        tbody tr.top-slot:not(.leader) {
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        td.team {
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+
+        .empty-state {
+            display: none;
+            text-align: center;
+            margin: 12px 0 4px;
+            font-size: calc(14px * var(--overlay-text-scale));
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+        }
+
+        .bracket-wrapper {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 18px;
+        }
+
+        .bracket-stage {
+            background: rgba(13, 18, 36, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 18px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .bracket-stage h3 {
+            margin: 0;
+            font-size: calc(18px * var(--overlay-text-scale));
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        .bracket-match {
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 12px 14px;
+            background: rgba(18, 26, 46, 0.75);
+        }
+
+        .match-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: calc(16px * var(--overlay-text-scale));
+            margin-bottom: 6px;
+        }
+
+        .match-row:last-of-type {
+            margin-bottom: 0;
+        }
+
+        .match-row.is-winner {
+            color: var(--primary-yellow);
+            font-weight: 700;
+        }
+
+        .team-name {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            letter-spacing: 0.03em;
+        }
+
+        .team-score {
+            margin-left: 12px;
+            min-width: 32px;
+            text-align: right;
+            font-family: 'DayPosterBlack', sans-serif;
+            font-size: calc(22px * var(--overlay-text-scale));
+        }
+
+        .match-meta {
+            margin-top: 10px;
+            font-size: calc(13px * var(--overlay-text-scale));
+            color: rgba(255, 255, 255, 0.65);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .ranking-footer {
+            margin-top: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: calc(13px * var(--overlay-text-scale));
+            color: rgba(255, 255, 255, 0.65);
+            letter-spacing: 0.06em;
+        }
+
+        @media (max-width: 1400px) {
+            .ranking-meta h1 {
+                font-size: calc(38px * var(--overlay-text-scale));
+            }
+
+            .phase-pill {
+                font-size: calc(14px * var(--overlay-text-scale));
+                padding: 10px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="ranking-status" class="status-banner"></div>
+
+    <div class="ranking-overlay" id="ranking-overlay">
+        <header class="ranking-header">
+            <div class="ranking-meta">
+                <span class="label">San Diego Footvolley Open</span>
+                <h1 id="division-label">Male A</h1>
+            </div>
+            <div class="phase-pill" id="phase-label">Group Standings</div>
+        </header>
+
+        <div class="ranking-content single-column" id="ranking-content">
+            <section class="group-section" id="group-section">
+                <h2 class="section-title">Group Standings</h2>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Rank</th>
+                                <th class="team">Team</th>
+                                <th class="numeric">W</th>
+                                <th class="numeric">L</th>
+                                <th class="numeric">+/-</th>
+                                <th class="numeric">PF</th>
+                                <th class="numeric">PA</th>
+                            </tr>
+                        </thead>
+                        <tbody id="group-table-body"></tbody>
+                    </table>
+                    <div class="empty-state" id="group-empty">Standings are not available yet for this division.</div>
+                </div>
+            </section>
+
+            <section class="bracket-section" id="bracket-section">
+                <h2 class="section-title">Elimination Bracket</h2>
+                <div class="bracket-wrapper" id="bracket-container"></div>
+                <div class="empty-state" id="bracket-empty">The elimination bracket has not been published yet.</div>
+            </section>
+        </div>
+
+        <footer class="ranking-footer">
+            <span id="last-updated">Updated just now</span>
+            <span id="sheet-label"></span>
+        </footer>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const AUTO_REFRESH_INTERVAL = 60000;
+        const ERROR_RETRY_INTERVAL = 15000;
+
+        const elements = {
+            overlay: document.getElementById('ranking-overlay'),
+            status: document.getElementById('ranking-status'),
+            divisionLabel: document.getElementById('division-label'),
+            phaseLabel: document.getElementById('phase-label'),
+            content: document.getElementById('ranking-content'),
+            groupSection: document.getElementById('group-section'),
+            groupTableBody: document.getElementById('group-table-body'),
+            groupEmpty: document.getElementById('group-empty'),
+            bracketSection: document.getElementById('bracket-section'),
+            bracketContainer: document.getElementById('bracket-container'),
+            bracketEmpty: document.getElementById('bracket-empty'),
+            lastUpdated: document.getElementById('last-updated'),
+            sheetLabel: document.getElementById('sheet-label')
+        };
+
+        let currentRankingSettings = {
+            division: 'Male A',
+            phase: 'group'
+        };
+        let currentRankingData = null;
+        let overlaySettings = null;
+        let autoRefreshTimer = null;
+        let errorRetryTimer = null;
+        let activeFetchController = null;
+
+        function clamp(value, min, max) {
+            if (!Number.isFinite(value)) {
+                return min;
+            }
+            return Math.min(Math.max(value, min), max);
+        }
+
+        function cmykToHex(color) {
+            if (!color) {
+                return null;
+            }
+
+            const c = clamp(Number(color.c), 0, 100) / 100;
+            const m = clamp(Number(color.m), 0, 100) / 100;
+            const y = clamp(Number(color.y), 0, 100) / 100;
+            const k = clamp(Number(color.k), 0, 100) / 100;
+
+            const r = Math.round(255 * (1 - c) * (1 - k));
+            const g = Math.round(255 * (1 - m) * (1 - k));
+            const b = Math.round(255 * (1 - y) * (1 - k));
+
+            const toHex = (component) => component.toString(16).padStart(2, '0');
+            return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        }
+
+        function camelToKebab(value) {
+            return value.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+        }
+
+        function applyOverlaySettings(settings) {
+            if (!settings) {
+                return;
+            }
+
+            overlaySettings = settings;
+            const root = document.documentElement;
+
+            if (settings.textScale !== undefined) {
+                const ratio = clamp(Number(settings.textScale), 50, 200) / 100;
+                root.style.setProperty('--overlay-text-scale', ratio);
+            }
+
+            if (settings.colorPalette) {
+                Object.entries(settings.colorPalette).forEach(([key, value]) => {
+                    const hex = cmykToHex(value);
+                    if (hex) {
+                        root.style.setProperty(`--${camelToKebab(key)}`, hex);
+                    }
+                });
+            }
+        }
+
+        function setStatus(message, variant) {
+            if (!elements.status) {
+                return;
+            }
+
+            if (!message) {
+                elements.status.style.display = 'none';
+                elements.status.className = 'status-banner';
+                return;
+            }
+
+            elements.status.textContent = message;
+            elements.status.className = 'status-banner';
+
+            if (variant === 'error') {
+                elements.status.classList.add('error');
+            } else if (variant === 'loading') {
+                elements.status.classList.add('loading');
+            }
+
+            elements.status.style.display = 'block';
+        }
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            return value
+                .toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function formatNumber(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            const numeric = Number(value);
+            if (Number.isFinite(numeric)) {
+                return numeric;
+            }
+            return escapeHtml(value);
+        }
+
+        function formatSaldo(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            const numeric = Number(value);
+            if (!Number.isFinite(numeric)) {
+                return escapeHtml(value);
+            }
+            if (numeric > 0) {
+                return `+${numeric}`;
+            }
+            if (numeric === 0) {
+                return '0';
+            }
+            return `${numeric}`;
+        }
+
+        function formatScoreValue(value) {
+            if (value === null || value === undefined || value === '') {
+                return '';
+            }
+            const numeric = Number(value);
+            if (Number.isFinite(numeric)) {
+                return numeric;
+            }
+            return value;
+        }
+
+        function determineWinners(score) {
+            const result = { team1: false, team2: false };
+            if (!score || score.team1 === undefined || score.team2 === undefined) {
+                return result;
+            }
+
+            const team1Score = Number(score.team1);
+            const team2Score = Number(score.team2);
+
+            if (!Number.isFinite(team1Score) || !Number.isFinite(team2Score)) {
+                return result;
+            }
+
+            if (team1Score > team2Score) {
+                result.team1 = true;
+            } else if (team2Score > team1Score) {
+                result.team2 = true;
+            }
+
+            return result;
+        }
+
+        function hasGroupRows(group) {
+            return Array.isArray(group) && group.length > 0;
+        }
+
+        function hasEliminationMatches(stages) {
+            return Array.isArray(stages) && stages.some((stage) =>
+                Array.isArray(stage.matches) && stage.matches.some((match) =>
+                    (match && (match.team1 || match.team2 || (match.score && (match.score.team1 !== undefined || match.score.team2 !== undefined)) || match.rawScore))
+                )
+            );
+        }
+
+        function computeEffectivePhase(data) {
+            const desired = currentRankingSettings.phase || 'group';
+            if (desired === 'auto') {
+                return hasEliminationMatches(data?.elimination) ? 'elimination' : 'group';
+            }
+            return desired;
+        }
+
+        function updatePhaseLabel(effectivePhase) {
+            if (!elements.phaseLabel) {
+                return;
+            }
+            const baseLabel = effectivePhase === 'elimination' ? 'Elimination Bracket' : 'Group Standings';
+            if (currentRankingSettings.phase === 'auto') {
+                elements.phaseLabel.textContent = `${baseLabel} (Auto)`;
+            } else {
+                elements.phaseLabel.textContent = baseLabel;
+            }
+        }
+
+        function updateDivisionLabel() {
+            if (!elements.divisionLabel) {
+                return;
+            }
+            const label = (currentRankingSettings.division || 'Division').toUpperCase();
+            elements.divisionLabel.textContent = label;
+        }
+
+        function updateFooter(data) {
+            if (elements.lastUpdated) {
+                if (data?.updatedAt) {
+                    const timestamp = new Date(data.updatedAt);
+                    if (!Number.isNaN(timestamp.getTime())) {
+                        elements.lastUpdated.textContent = `Updated ${timestamp.toLocaleString()}`;
+                    } else {
+                        elements.lastUpdated.textContent = 'Updated time unavailable';
+                    }
+                } else {
+                    elements.lastUpdated.textContent = 'Last update pending';
+                }
+            }
+
+            if (elements.sheetLabel) {
+                elements.sheetLabel.textContent = data?.sheet ? `Worksheet: ${data.sheet}` : '';
+            }
+        }
+
+        function renderGroupTable(rows) {
+            if (!elements.groupTableBody || !elements.groupEmpty) {
+                return;
+            }
+
+            if (!hasGroupRows(rows)) {
+                elements.groupTableBody.innerHTML = '';
+                elements.groupEmpty.style.display = 'block';
+                return;
+            }
+
+            elements.groupEmpty.style.display = 'none';
+
+            const html = rows.map((entry, index) => {
+                const rowClasses = ['group-row'];
+                if (index === 0) {
+                    rowClasses.push('leader');
+                }
+                if (index < 4) {
+                    rowClasses.push('top-slot');
+                }
+
+                const rankValue = entry.rank === null || entry.rank === undefined || entry.rank === ''
+                    ? index + 1
+                    : formatNumber(entry.rank);
+
+                const winsValue = formatNumber(entry.wins);
+                const lossesValue = formatNumber(entry.losses);
+                const saldoValue = formatSaldo(entry.saldo);
+                const pointsForValue = formatNumber(entry.pointsFor);
+                const pointsAgainstValue = formatNumber(entry.pointsAgainst);
+                const teamName = escapeHtml(entry.team || 'TBD');
+
+                return `
+                    <tr class="${rowClasses.join(' ')}">
+                        <td>${rankValue}</td>
+                        <td class="team">${teamName}</td>
+                        <td class="numeric">${winsValue}</td>
+                        <td class="numeric">${lossesValue}</td>
+                        <td class="numeric">${saldoValue}</td>
+                        <td class="numeric">${pointsForValue}</td>
+                        <td class="numeric">${pointsAgainstValue}</td>
+                    </tr>
+                `;
+            }).join('');
+
+            elements.groupTableBody.innerHTML = html;
+        }
+
+        function renderEliminationBracket(stages) {
+            if (!elements.bracketContainer || !elements.bracketEmpty) {
+                return;
+            }
+
+            const hasMatches = hasEliminationMatches(stages);
+            if (!hasMatches) {
+                elements.bracketContainer.innerHTML = '';
+                elements.bracketEmpty.style.display = 'block';
+                return;
+            }
+
+            elements.bracketEmpty.style.display = 'none';
+
+            const html = stages
+                .filter((stage) => Array.isArray(stage.matches) && stage.matches.length > 0)
+                .map((stage) => {
+                    const stageTitle = escapeHtml(stage.name || 'Stage');
+
+                    const matchesHtml = stage.matches.map((match) => {
+                        const team1 = escapeHtml(match.team1 || 'TBD');
+                        const team2 = escapeHtml(match.team2 || 'TBD');
+                        const score = match.score || null;
+                        const winners = determineWinners(score);
+
+                        const team1Score = formatScoreValue(score?.team1);
+                        const team2Score = formatScoreValue(score?.team2);
+                        const fallbackScore = (!score || team1Score === '' || team2Score === '') && match.rawScore
+                            ? escapeHtml(match.rawScore)
+                            : '';
+
+                        return `
+                            <div class="bracket-match">
+                                <div class="match-row ${winners.team1 ? 'is-winner' : ''}">
+                                    <span class="team-name">${team1}</span>
+                                    <span class="team-score">${team1Score !== '' ? team1Score : ''}</span>
+                                </div>
+                                <div class="match-row ${winners.team2 ? 'is-winner' : ''}">
+                                    <span class="team-name">${team2}</span>
+                                    <span class="team-score">${team2Score !== '' ? team2Score : ''}</span>
+                                </div>
+                                ${fallbackScore ? `<div class="match-meta">${fallbackScore}</div>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+
+                    return `
+                        <div class="bracket-stage">
+                            <h3>${stageTitle}</h3>
+                            ${matchesHtml}
+                        </div>
+                    `;
+                }).join('');
+
+            elements.bracketContainer.innerHTML = html;
+        }
+
+        function showOverlay() {
+            if (!elements.overlay) {
+                return;
+            }
+            elements.overlay.style.display = 'flex';
+        }
+
+        function scheduleAutoRefresh() {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+            }
+            autoRefreshTimer = setInterval(() => {
+                fetchRankingData(false);
+            }, AUTO_REFRESH_INTERVAL);
+        }
+
+        function scheduleErrorRetry() {
+            if (errorRetryTimer) {
+                clearTimeout(errorRetryTimer);
+            }
+            errorRetryTimer = setTimeout(() => {
+                fetchRankingData(false);
+            }, ERROR_RETRY_INTERVAL);
+        }
+
+        async function fetchRankingData(force = false) {
+            if (!currentRankingSettings.division) {
+                return;
+            }
+
+            if (activeFetchController) {
+                activeFetchController.abort();
+            }
+            const controller = new AbortController();
+            activeFetchController = controller;
+
+            setStatus('Loading ranking data...', 'loading');
+
+            try {
+                const params = new URLSearchParams();
+                params.set('division', currentRankingSettings.division);
+                if (force) {
+                    params.set('force', 'true');
+                }
+
+                const response = await fetch(`/api/ranking-data?${params.toString()}`, {
+                    cache: 'no-store',
+                    signal: controller.signal
+                });
+
+                let payload = null;
+                try {
+                    payload = await response.json();
+                } catch (parseError) {
+                    payload = null;
+                }
+
+                if (!response.ok) {
+                    const message = payload?.error || `Request failed with status ${response.status}`;
+                    throw new Error(message);
+                }
+
+                const data = payload;
+                currentRankingData = data;
+
+                if (errorRetryTimer) {
+                    clearTimeout(errorRetryTimer);
+                    errorRetryTimer = null;
+                }
+
+                renderRankingData(data);
+                setStatus('', null);
+                showOverlay();
+                scheduleAutoRefresh();
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    return;
+                }
+                console.error('Error loading ranking data:', error);
+                const errorMessage = error?.message
+                    ? `${error.message} Retrying shortly.`
+                    : 'Unable to load ranking data. Retrying shortly.';
+                setStatus(errorMessage, 'error');
+                scheduleErrorRetry();
+            } finally {
+                if (activeFetchController === controller) {
+                    activeFetchController = null;
+                }
+            }
+        }
+
+        function renderRankingData(data) {
+            if (!data) {
+                return;
+            }
+
+            const effectivePhase = computeEffectivePhase(data);
+            updatePhaseLabel(effectivePhase);
+            updateDivisionLabel();
+
+            const showGroup = effectivePhase === 'group';
+            const showElimination = effectivePhase === 'elimination';
+
+            if (elements.groupSection) {
+                elements.groupSection.style.display = showGroup ? 'block' : 'none';
+            }
+
+            if (elements.bracketSection) {
+                elements.bracketSection.style.display = showElimination ? 'block' : 'none';
+            }
+
+            if (elements.content) {
+                const useSingleColumn = !(showGroup && showElimination);
+                elements.content.classList.toggle('single-column', useSingleColumn);
+            }
+
+            if (showGroup) {
+                renderGroupTable(data.group);
+            }
+
+            if (showElimination) {
+                renderEliminationBracket(data.elimination);
+            }
+
+            updateFooter(data);
+        }
+
+        function applyRankingSettings(settings, options = {}) {
+            if (!settings) {
+                return;
+            }
+
+            const division = typeof settings.division === 'string' && settings.division.trim()
+                ? settings.division.trim()
+                : currentRankingSettings.division || 'Male A';
+
+            const phase = ['group', 'elimination', 'auto'].includes(settings.phase)
+                ? settings.phase
+                : currentRankingSettings.phase || 'group';
+
+            currentRankingSettings = { division, phase };
+            updateDivisionLabel();
+
+            if (options.fetch) {
+                fetchRankingData(Boolean(options.force));
+            }
+        }
+
+        socket.on('connect', () => {
+            console.log('Ranking overlay connected');
+        });
+
+        socket.on('disconnect', () => {
+            console.log('Ranking overlay disconnected');
+            setStatus('Connection lost. Attempting to reconnect...', 'error');
+        });
+
+        socket.on('overlaySettingsUpdate', (settings) => {
+            applyOverlaySettings(settings);
+        });
+
+        socket.on('gameStateUpdate', (state) => {
+            if (state.overlaySettings) {
+                applyOverlaySettings(state.overlaySettings);
+            }
+
+            if (state.rankingSettings) {
+                applyRankingSettings(state.rankingSettings, { fetch: false });
+                if (!currentRankingData) {
+                    fetchRankingData(false);
+                }
+            }
+        });
+
+        socket.on('rankingSettingsUpdate', (settings) => {
+            applyRankingSettings(settings, { fetch: true });
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshTimer) {
+                clearInterval(autoRefreshTimer);
+            }
+            if (errorRetryTimer) {
+                clearTimeout(errorRetryTimer);
+            }
+            if (activeFetchController) {
+                activeFetchController.abort();
+            }
+        });
+
+        console.log('Ranking overlay script loaded');
+    </script>
+</body>
+</html>

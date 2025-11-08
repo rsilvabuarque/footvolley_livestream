@@ -247,6 +247,14 @@
         .btn-warning:hover {
             background: #dd6b20;
         }
+
+        .btn-info {
+            background: #4299e1;
+        }
+
+        .btn-info:hover {
+            background: #3182ce;
+        }
         
         .btn-large {
             font-size: 18px;
@@ -268,6 +276,62 @@
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
             margin-top: 20px;
+        }
+
+        .ranking-upload-card {
+            margin-top: 25px;
+            padding: 20px;
+            border: 2px dashed rgba(102, 126, 234, 0.45);
+            border-radius: 12px;
+            background: rgba(102, 126, 234, 0.06);
+        }
+
+        .ranking-upload-card h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #2d3748;
+        }
+
+        .ranking-upload-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .ranking-upload-row input[type="file"] {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #cbd5f5;
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .ranking-upload-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+            font-size: 14px;
+            color: #4a5568;
+            margin-bottom: 6px;
+        }
+
+        .ranking-upload-status {
+            font-size: 14px;
+            margin-top: 6px;
+        }
+
+        .ranking-upload-status.info {
+            color: #2b6cb0;
+        }
+
+        .ranking-upload-status.success {
+            color: #2f855a;
+        }
+
+        .ranking-upload-status.error {
+            color: #c53030;
         }
         
         /* Quick actions bar */
@@ -461,6 +525,7 @@
     <div class="tab-nav">
         <button class="tab-button active" data-target="controls-tab">Referee Panel</button>
         <button class="tab-button" data-target="setup-tab">Overlay Setup</button>
+        <button class="tab-button" data-target="ranking-tab">Ranking Setup</button>
     </div>
 
     <div id="controls-tab" class="tab-content active">
@@ -733,6 +798,59 @@
                 </div>
             </div>
         </div>
+        <div id="ranking-tab" class="tab-content">
+            <div class="container">
+                <div class="section full-width">
+                    <h2>📈 Ranking Overlay</h2>
+                    <div class="help-text">
+                        Select the division and phase used by the dedicated ranking overlay. Refresh when the spreadsheet updates.
+                    </div>
+
+                    <div class="team-row">
+                        <div class="team-control">
+                            <h3>Division</h3>
+                            <select id="ranking-division"></select>
+                        </div>
+                        <div class="team-control">
+                            <h3>Phase Preference</h3>
+                            <select id="ranking-phase">
+                                <option value="auto" selected>Auto (detect best available)</option>
+                                <option value="group">Group Stage</option>
+                                <option value="elimination">Elimination Bracket</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="action-grid">
+                        <button class="btn btn-success" onclick="emitRankingSettingsUpdate()">Apply Settings</button>
+                        <button class="btn btn-info" onclick="forceRankingRefresh()">Refresh Spreadsheet</button>
+                        <button class="btn" onclick="openRankingOverlay()">Open Ranking Overlay</button>
+                    </div>
+
+                    <div class="ranking-upload-card">
+                        <h3>Spreadsheet Source</h3>
+                        <p class="setup-note">Upload the latest workbook exported with the provided template. The overlay updates automatically once processed.</p>
+                        <div class="ranking-upload-row">
+                            <input type="file" id="ranking-upload-input" accept=".xlsx,.xlsm,.xls">
+                            <button class="btn" id="ranking-upload-button" type="button">Upload Spreadsheet</button>
+                        </div>
+                        <div class="ranking-upload-meta">
+                            <div><strong>Current file:</strong> <span id="ranking-file-name">No file uploaded</span></div>
+                            <div><strong>Updated:</strong> <span id="ranking-file-updated">—</span></div>
+                        </div>
+                        <div class="ranking-upload-meta">
+                            <div><strong>File size:</strong> <span id="ranking-file-size">—</span></div>
+                            <div><strong>Worksheet hint:</strong> Columns must follow the official template order.</div>
+                        </div>
+                        <div class="ranking-upload-status" id="ranking-upload-status"></div>
+                    </div>
+
+                    <p class="setup-note">
+                        The ranking overlay reads directly from the most recent upload. Use "Refresh" if you replace the spreadsheet while the overlay is open.
+                    </p>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Include Socket.IO for real-time communication -->
@@ -790,7 +908,17 @@
             overlayDivisionOptions: document.getElementById('overlay-division-options'),
             overlayHostScale: document.getElementById('overlay-host-scale'),
             overlaySponsorScale: document.getElementById('overlay-sponsor-scale'),
-            overlayMatchInfoScale: document.getElementById('overlay-matchinfo-scale')
+            overlayMatchInfoScale: document.getElementById('overlay-matchinfo-scale'),
+
+            // Ranking overlay inputs
+            rankingDivision: document.getElementById('ranking-division'),
+            rankingPhase: document.getElementById('ranking-phase'),
+            rankingUploadInput: document.getElementById('ranking-upload-input'),
+            rankingUploadButton: document.getElementById('ranking-upload-button'),
+            rankingFileName: document.getElementById('ranking-file-name'),
+            rankingFileUpdated: document.getElementById('ranking-file-updated'),
+            rankingFileSize: document.getElementById('ranking-file-size'),
+            rankingUploadStatus: document.getElementById('ranking-upload-status')
         };
 
         const tabButtons = document.querySelectorAll('.tab-button');
@@ -798,6 +926,7 @@
         const overlayColorInputs = document.querySelectorAll('.overlay-color-input');
 
         let lastOverlaySettings = null;
+        let lastRankingSourceMeta = null;
 
         tabButtons.forEach((button) => {
             button.addEventListener('click', () => {
@@ -816,6 +945,143 @@
                 }
             });
         });
+
+        function formatBytes(bytes) {
+            if (!Number.isFinite(bytes) || bytes <= 0) {
+                return '0 B';
+            }
+
+            const units = ['B', 'KB', 'MB', 'GB'];
+            let index = 0;
+            let value = bytes;
+
+            while (value >= 1024 && index < units.length - 1) {
+                value /= 1024;
+                index++;
+            }
+
+            const precision = value >= 10 || index === 0 ? 0 : 1;
+            return `${value.toFixed(precision)} ${units[index]}`;
+        }
+
+        function setRankingStatusMessage(message, variant = 'info') {
+            const target = elements.rankingUploadStatus;
+            if (!target) {
+                return;
+            }
+
+            target.textContent = message || '';
+            target.classList.remove('info', 'success', 'error');
+
+            if (message) {
+                target.classList.add(variant);
+            }
+        }
+
+        function renderRankingSourceMeta(meta) {
+            if (!elements.rankingFileName || !elements.rankingFileUpdated || !elements.rankingFileSize) {
+                return;
+            }
+
+            if (!meta || !meta.hasFile) {
+                elements.rankingFileName.textContent = 'No file uploaded';
+                elements.rankingFileUpdated.textContent = '—';
+                elements.rankingFileSize.textContent = '—';
+                lastRankingSourceMeta = meta || null;
+                return;
+            }
+
+            const uploadedTime = meta.uploadedAt ? new Date(meta.uploadedAt) : null;
+            const readableTime = uploadedTime && !Number.isNaN(uploadedTime.getTime())
+                ? uploadedTime.toLocaleString()
+                : '—';
+
+            elements.rankingFileName.textContent = meta.originalName || 'ranking-latest.xlsx';
+            elements.rankingFileUpdated.textContent = readableTime;
+            elements.rankingFileSize.textContent = formatBytes(Number(meta.size) || 0);
+
+            if (!lastRankingSourceMeta || lastRankingSourceMeta.uploadedAt !== meta.uploadedAt) {
+                setRankingStatusMessage(`Spreadsheet ready: ${elements.rankingFileName.textContent}`, 'success');
+            }
+
+            lastRankingSourceMeta = meta;
+        }
+
+        async function fetchRankingMeta(showStatus = false) {
+            try {
+                const response = await fetch('/api/ranking-meta', { cache: 'no-store' });
+                if (!response.ok) {
+                    throw new Error(`Status ${response.status}`);
+                }
+
+                const meta = await response.json();
+                renderRankingSourceMeta(meta);
+
+                if (showStatus) {
+                    if (meta?.hasFile) {
+                        setRankingStatusMessage(`Spreadsheet loaded: ${meta.originalName}`, 'success');
+                    } else {
+                        setRankingStatusMessage('No spreadsheet uploaded yet.', 'info');
+                    }
+                }
+            } catch (error) {
+                console.error('Error fetching ranking metadata:', error);
+                if (showStatus) {
+                    setRankingStatusMessage('Unable to load spreadsheet status.', 'error');
+                }
+            }
+        }
+
+        async function uploadRankingWorkbook() {
+            if (!elements.rankingUploadInput) {
+                return;
+            }
+
+            const file = elements.rankingUploadInput.files?.[0];
+            if (!file) {
+                setRankingStatusMessage('Select a spreadsheet before uploading.', 'error');
+                return;
+            }
+
+            const button = elements.rankingUploadButton;
+            if (button) {
+                button.disabled = true;
+            }
+
+            setRankingStatusMessage('Uploading spreadsheet...', 'info');
+
+            try {
+                const formData = new FormData();
+                formData.append('rankingWorkbook', file, file.name);
+
+                const response = await fetch('/api/ranking-upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const payload = await response.json().catch(() => ({}));
+
+                if (!response.ok || payload.success === false) {
+                    const message = payload?.error || `Upload failed with status ${response.status}`;
+                    throw new Error(message);
+                }
+
+                renderRankingSourceMeta(payload.meta);
+                elements.rankingUploadInput.value = '';
+                setRankingStatusMessage('Spreadsheet uploaded successfully.', 'success');
+
+                if (payload.meta?.hasFile) {
+                    emitRankingSettingsUpdate(true);
+                }
+            } catch (error) {
+                console.error('Spreadsheet upload failed:', error);
+                setRankingStatusMessage(error.message || 'Upload failed. Please try again.', 'error');
+            } finally {
+                if (button) {
+                    button.disabled = false;
+                }
+            }
+        }
         
         /**
          * CONNECTION STATUS HANDLING
@@ -841,7 +1107,11 @@
             }
             currentGameState.overlaySettings = settings;
             syncOverlaySettingsUI(settings);
-            renderDivisionOptions(settings.divisionOptions || [], currentGameState.tournament?.division);
+            renderDivisionOptions(
+                settings.divisionOptions || [],
+                currentGameState.tournament?.division,
+                currentGameState.rankingSettings?.division
+            );
             updateUI();
         });
 
@@ -852,6 +1122,21 @@
                 syncOverlaySettingsUI(gameState.overlaySettings);
             }
             updateUI();
+        });
+
+        socket.on('rankingSettingsUpdate', (settings) => {
+            console.log('📈 Ranking settings update received:', settings);
+            if (!currentGameState) {
+                currentGameState = {};
+            }
+            currentGameState.rankingSettings = settings;
+            updateRankingSettingsUI(settings);
+            updateUI();
+        });
+
+        socket.on('rankingSourceUpdate', (meta) => {
+            console.log('📁 Ranking source update received:', meta);
+            renderRankingSourceMeta(meta);
         });
         
         /**
@@ -895,7 +1180,11 @@
             updateReplayQueueDisplay();
 
             if (state.overlaySettings && Array.isArray(state.overlaySettings.divisionOptions)) {
-                renderDivisionOptions(state.overlaySettings.divisionOptions, state.tournament?.division);
+                renderDivisionOptions(
+                    state.overlaySettings.divisionOptions,
+                    state.tournament?.division,
+                    state.rankingSettings?.division
+                );
             }
 
             if (state.tournament) {
@@ -911,6 +1200,10 @@
                 elements.currentMatch.textContent = state.tournament.round || 'TBD';
             } else {
                 elements.currentMatch.textContent = 'TBD';
+            }
+
+            if (state.rankingSettings) {
+                updateRankingSettingsUI(state.rankingSettings);
             }
         }
         
@@ -948,31 +1241,43 @@
             elements.setManagementSection.style.display = enabled ? 'block' : 'none';
         }
 
-        function renderDivisionOptions(options, selectedValue) {
-            if (!elements.tournamentDivision || !Array.isArray(options)) {
-                return;
-            }
+        function renderDivisionOptions(options, selectedTournament, selectedRanking) {
+            const list = Array.isArray(options) ? options.filter(Boolean) : [];
+            const selectConfigs = [
+                { element: elements.tournamentDivision, selected: selectedTournament },
+                { element: elements.rankingDivision, selected: selectedRanking }
+            ];
 
-            const existingValues = Array.from(elements.tournamentDivision.options).map((opt) => opt.value);
-            const needsUpdate =
-                options.length !== existingValues.length ||
-                options.some((value, index) => value !== existingValues[index]);
+            selectConfigs.forEach(({ element, selected }) => {
+                if (!element) {
+                    return;
+                }
 
-            if (needsUpdate) {
-                elements.tournamentDivision.innerHTML = '';
-                options.forEach((option) => {
-                    const opt = document.createElement('option');
-                    opt.value = option;
-                    opt.textContent = option;
-                    elements.tournamentDivision.appendChild(opt);
-                });
-            }
+                if (list.length) {
+                    const existingValues = Array.from(element.options).map((opt) => opt.value);
+                    const needsUpdate =
+                        list.length !== existingValues.length ||
+                        list.some((value, index) => value !== existingValues[index]);
 
-            if (selectedValue && options.includes(selectedValue)) {
-                elements.tournamentDivision.value = selectedValue;
-            } else if (options.length && !options.includes(elements.tournamentDivision.value)) {
-                elements.tournamentDivision.value = options[0];
-            }
+                    if (needsUpdate) {
+                        element.innerHTML = '';
+                        list.forEach((option) => {
+                            const opt = document.createElement('option');
+                            opt.value = option;
+                            opt.textContent = option;
+                            element.appendChild(opt);
+                        });
+                    }
+
+                    if (selected && list.includes(selected)) {
+                        element.value = selected;
+                    } else if (list.length && !list.includes(element.value)) {
+                        element.value = list[0];
+                    }
+                } else if (selected && Array.from(element.options).some((opt) => opt.value === selected)) {
+                    element.value = selected;
+                }
+            });
         }
 
         function syncOverlaySettingsUI(settings) {
@@ -1015,6 +1320,27 @@
                 const value = settings.colorPalette?.[key]?.[channel];
                 input.value = Number.isFinite(value) ? value : 0;
             });
+        }
+
+        function updateRankingSettingsUI(settings) {
+            if (!settings) {
+                return;
+            }
+
+            const division = settings.division;
+            const phase = settings.phase;
+
+            if (elements.rankingDivision && division) {
+                const options = Array.from(elements.rankingDivision.options).map((opt) => opt.value);
+                if (options.includes(division)) {
+                    elements.rankingDivision.value = division;
+                }
+            }
+
+            if (elements.rankingPhase) {
+                const validPhases = ['group', 'elimination', 'auto'];
+                elements.rankingPhase.value = validPhases.includes(phase) ? phase : 'auto';
+            }
         }
 
         function gatherOverlaySettings() {
@@ -1062,6 +1388,59 @@
             console.log('🎨 Overlay settings updated:', payload);
         }
 
+        function emitRankingSettingsUpdate(forceRefresh = false) {
+            if (!elements.rankingDivision || !elements.rankingPhase) {
+                return;
+            }
+
+            const divisionValue = (elements.rankingDivision.value || '').trim();
+            const phaseValue = elements.rankingPhase.value;
+            const validPhases = ['group', 'elimination', 'auto'];
+
+            const payload = {
+                division: divisionValue || 'Male A',
+                phase: validPhases.includes(phaseValue) ? phaseValue : 'auto'
+            };
+
+            if (forceRefresh) {
+                payload.forceRefresh = true;
+            }
+
+            currentGameState.rankingSettings = {
+                division: payload.division,
+                phase: payload.phase
+            };
+
+            setRankingStatusMessage(
+                forceRefresh ? 'Refreshing ranking data...' : 'Applying ranking settings...',
+                'info'
+            );
+
+            socket.emit('updateRankingSettings', payload, (response) => {
+                if (!response || response.ok === false) {
+                    const message = response?.error || 'Unable to update ranking settings.';
+                    setRankingStatusMessage(message, 'error');
+                    return;
+                }
+
+                if (response.settings) {
+                    currentGameState.rankingSettings = response.settings;
+                    updateRankingSettingsUI(response.settings);
+                }
+
+                if (response.meta) {
+                    renderRankingSourceMeta(response.meta);
+                }
+
+                const successMessage = forceRefresh
+                    ? 'Ranking cache refreshed successfully.'
+                    : 'Ranking settings updated.';
+                setRankingStatusMessage(successMessage, 'success');
+            });
+
+            console.log('📈 Ranking settings updated:', payload);
+        }
+
         [
             elements.overlayTextScale,
             elements.overlayHostScale,
@@ -1080,6 +1459,27 @@
         overlayColorInputs.forEach((input) => {
             input.addEventListener('change', emitOverlaySettingsUpdate);
         });
+
+        if (elements.rankingDivision) {
+            elements.rankingDivision.addEventListener('change', () => emitRankingSettingsUpdate());
+        }
+
+        if (elements.rankingPhase) {
+            elements.rankingPhase.addEventListener('change', () => emitRankingSettingsUpdate());
+        }
+
+        if (elements.rankingUploadButton) {
+            elements.rankingUploadButton.addEventListener('click', uploadRankingWorkbook);
+        }
+
+        if (elements.rankingUploadInput) {
+            elements.rankingUploadInput.addEventListener('change', () => {
+                const file = elements.rankingUploadInput.files?.[0];
+                if (file) {
+                    setRankingStatusMessage(`Selected ${file.name} (${formatBytes(file.size)})`, 'info');
+                }
+            });
+        }
         
         /**
          * UPDATE REPLAY QUEUE DISPLAY
@@ -1216,6 +1616,15 @@
             window.open('/overlay.html', '_blank');
             console.log('📺 Overlay window opened');
         }
+
+        function openRankingOverlay() {
+            window.open('/ranking.html', '_blank');
+            console.log('📈 Ranking overlay window opened');
+        }
+
+        function forceRankingRefresh() {
+            emitRankingSettingsUpdate(true);
+        }
         
         function refreshPage() {
             location.reload();
@@ -1323,6 +1732,8 @@
                     break;
             }
         });
+
+    fetchRankingMeta(false);
         
         console.log('🎮 Referee Control Panel loaded');
         console.log('⌨️  Keyboard shortcuts: 1/2 = add point, R = replay, T = rankings, ESC = reset scores');

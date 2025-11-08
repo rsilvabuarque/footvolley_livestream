@@ -20,7 +20,57 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const open = require('open'); // This will automatically open web browser
+const multer = require('multer');
+const XLSX = require('xlsx');
 require('dotenv').config();
+
+const RANKING_UPLOAD_DIR = path.join(__dirname, 'uploads', 'ranking');
+const RANKING_WORKBOOK_PATH = path.join(RANKING_UPLOAD_DIR, 'ranking-latest.xlsx');
+const RANKING_META_PATH = path.join(RANKING_UPLOAD_DIR, 'ranking-meta.json');
+const RANKINGS_REFRESH_INTERVAL = Number(process.env.RANKINGS_REFRESH_INTERVAL_MS || 60_000);
+const RANKING_UPLOAD_MAX_SIZE = Number(process.env.RANKING_UPLOAD_MAX_BYTES || 15 * 1024 * 1024);
+
+const rankingStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        try {
+            ensureRankingUploadDir();
+            cb(null, RANKING_UPLOAD_DIR);
+        } catch (error) {
+            cb(error, RANKING_UPLOAD_DIR);
+        }
+    },
+    filename: (req, file, cb) => {
+        cb(null, path.basename(RANKING_WORKBOOK_PATH));
+    }
+});
+
+const acceptedMimeTypes = new Set([
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-excel',
+    'application/vnd.ms-excel.sheet.macroenabled.12',
+    'application/vnd.ms-excel.sheet.binary.macroenabled.12',
+    'application/octet-stream'
+]);
+
+const rankingUpload = multer({
+    storage: rankingStorage,
+    limits: {
+        fileSize: RANKING_UPLOAD_MAX_SIZE
+    },
+    fileFilter: (req, file, cb) => {
+    const extension = path.extname(file.originalname || '').toLowerCase();
+    const allowedExtensions = ['.xlsx', '.xlsm', '.xlsb', '.xls'];
+    const isAllowedExtension = allowedExtensions.includes(extension);
+    const mimetype = (file.mimetype || '').toLowerCase();
+    const isAllowedMime = acceptedMimeTypes.has(mimetype);
+
+        if (!isAllowedExtension || !isAllowedMime) {
+            return cb(new Error('Only Excel workbooks (.xlsx, .xlsm) are supported'));
+        }
+
+        cb(null, true);
+    }
+});
 
 const defaultOverlaySettings = {
     textScale: 100,
@@ -44,6 +94,356 @@ const toNumeric = (value, fallback) => {
     return Number.isFinite(number) ? number : fallback;
 };
 const cloneOverlaySettings = () => JSON.parse(JSON.stringify(defaultOverlaySettings));
+
+const rankingCache = {
+    workbook: null,
+    sourceMtime: null,
+    division: new Map()
+};
+
+function ensureRankingUploadDir() {
+    if (!fs.existsSync(RANKING_UPLOAD_DIR)) {
+        fs.mkdirSync(RANKING_UPLOAD_DIR, { recursive: true });
+    }
+}
+
+function loadRankingMetaFromDisk() {
+    try {
+        ensureRankingUploadDir();
+
+        if (!fs.existsSync(RANKING_WORKBOOK_PATH)) {
+            return { path: null, originalName: null, uploadedAt: null, size: 0 };
+        }
+
+        let storedMeta = {};
+        if (fs.existsSync(RANKING_META_PATH)) {
+            storedMeta = JSON.parse(fs.readFileSync(RANKING_META_PATH, 'utf8'));
+        }
+
+        const stats = fs.statSync(RANKING_WORKBOOK_PATH);
+        return {
+            path: RANKING_WORKBOOK_PATH,
+            originalName: storedMeta.originalName || 'ranking-latest.xlsx',
+            uploadedAt: storedMeta.uploadedAt || stats.mtime.toISOString(),
+            size: stats.size
+        };
+    } catch (error) {
+        console.error('⚠️  Unable to load ranking metadata:', error.message);
+        return { path: null, originalName: null, uploadedAt: null, size: 0 };
+    }
+}
+
+function saveRankingMeta(meta) {
+    try {
+        ensureRankingUploadDir();
+        fs.writeFileSync(RANKING_META_PATH, JSON.stringify(meta, null, 2), 'utf8');
+    } catch (error) {
+        console.error('⚠️  Unable to save ranking metadata:', error.message);
+    }
+}
+
+let rankingSource = loadRankingMetaFromDisk();
+
+function getRankingSourcePath() {
+    if (rankingSource?.path && fs.existsSync(rankingSource.path)) {
+        return rankingSource.path;
+    }
+    return null;
+}
+
+function updateRankingSource(meta) {
+    rankingSource = {
+        path: meta.path || null,
+        originalName: meta.originalName || null,
+        uploadedAt: meta.uploadedAt || null,
+        size: meta.size || 0
+    };
+    saveRankingMeta(rankingSource);
+}
+
+function resetRankingCache() {
+    rankingCache.workbook = null;
+    rankingCache.sourceMtime = null;
+    rankingCache.division.clear();
+}
+
+function loadRankingWorkbook(forceRefresh = false) {
+    const workbookPath = getRankingSourcePath();
+    if (!workbookPath) {
+        throw new Error('No ranking workbook uploaded yet');
+    }
+
+    const stats = fs.statSync(workbookPath);
+    const shouldReload =
+        forceRefresh ||
+        !rankingCache.workbook ||
+        rankingCache.sourceMtime === null ||
+        rankingCache.sourceMtime !== stats.mtimeMs;
+
+    if (shouldReload) {
+        console.log('📚 Loading ranking workbook from disk...');
+        const workbook = XLSX.readFile(workbookPath, {
+            cellDates: true,
+            cellNF: false,
+            cellText: false
+        });
+
+        rankingCache.workbook = workbook;
+        rankingCache.sourceMtime = stats.mtimeMs;
+        rankingCache.division.clear();
+    }
+
+    return rankingCache.workbook;
+}
+
+const DIVISION_SHEET_MAP = {
+    'Male A': 'Male A-3',
+    'Male B': 'Male B-3',
+    'Male C': 'Male C-3',
+    'Male D': 'Male D-3',
+    'Female A': 'Female A-3',
+    'Female B': 'Female B-3',
+    'Female C': 'Female C-3',
+    'Mixed Duos': 'MDS-1',
+    'Unlikely Duos': 'UD-1',
+    'Foottable': 'Foottable #1'
+};
+
+const stageOrder = ['Quarterfinals', 'Semifinals', 'Final', 'Third Place'];
+
+function sheetToRowArrays(sheet) {
+    if (!sheet) {
+        return [];
+    }
+
+    const rows = XLSX.utils.sheet_to_json(sheet, {
+        header: 1,
+        defval: null,
+        blankrows: false,
+        raw: true
+    });
+
+    return Array.isArray(rows) ? rows : [];
+}
+
+function isValueEmpty(value) {
+    if (value === null || value === undefined) {
+        return true;
+    }
+    if (typeof value === 'number') {
+        return Number.isNaN(value);
+    }
+    if (typeof value === 'string') {
+        return value.trim() === '';
+    }
+    return false;
+}
+
+function sanitizeNumber(value) {
+    if (value === null || value === undefined) {
+        return null;
+    }
+
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : null;
+    }
+
+    const cleaned = String(value).replace(/[^0-9.-]/g, '');
+    if (!cleaned) {
+        return null;
+    }
+
+    const numeric = Number(cleaned);
+    return Number.isFinite(numeric) ? numeric : null;
+}
+
+function sanitizeTeamName(value) {
+    if (value === null || value === undefined) {
+        return '';
+    }
+    return String(value).replace(/\s+/g, ' ').trim();
+}
+
+function parseRankValue(value, fallback) {
+    const numeric = sanitizeNumber(value);
+    if (numeric !== null) {
+        return numeric;
+    }
+
+    if (typeof value === 'string') {
+        const match = value.match(/(\d+)/);
+        if (match) {
+            const parsed = Number(match[1]);
+            if (Number.isFinite(parsed)) {
+                return parsed;
+            }
+        }
+    }
+
+    return fallback ?? null;
+}
+
+function findGroupHeaderRow(rows) {
+    for (let index = 0; index < rows.length; index++) {
+        const row = rows[index];
+        if (!row) {
+            continue;
+        }
+
+        const trimmed = row.map((cell) => (typeof cell === 'string' ? cell.trim() : cell));
+        const normalized = trimmed.map((cell) => (typeof cell === 'string' ? cell.toLowerCase() : ''));
+
+        const hasGroup = normalized.some((value) => value && value.includes('group'));
+        const hasTeam = normalized.some((value) => value && (/athlete/.test(value) || value.includes('team') || value.includes('dupla')));
+        const hasWins = normalized.some((value) => value && value.startsWith('win'));
+        const hasSaldo = normalized.some((value) => value && (value.includes('saldo') || value.includes('balance') || value.includes('+/-')));
+
+        if (hasGroup && hasTeam && (hasWins || hasSaldo)) {
+            return { index, headers: trimmed };
+        }
+    }
+
+    return { index: -1, headers: [] };
+}
+
+function extractGroupRanking(sheet) {
+    const rows = sheetToRowArrays(sheet);
+    if (!rows.length) {
+        return [];
+    }
+
+    const { index: headerIndex, headers } = findGroupHeaderRow(rows);
+    if (headerIndex === -1) {
+        return [];
+    }
+
+    const normalizedHeaders = headers.map((header) => (header ? header.toString().trim().toLowerCase() : ''));
+
+    const columnIndexes = {
+        team: normalizedHeaders.findIndex((value) => value && (/athlete/.test(value) || value.includes('team') || value.includes('dupla'))),
+        wins: normalizedHeaders.findIndex((value) => value === 'win' || value === 'wins'),
+        losses: normalizedHeaders.findIndex((value) => value.startsWith('lose') || value === 'losses'),
+        saldo: normalizedHeaders.findIndex((value) => value.includes('saldo') || value.includes('balance') || value.includes('dif')),
+        pointsFor: normalizedHeaders.findIndex((value) => value === 'pm' || value.includes('points for') || value === 'pf'),
+        pointsAgainst: normalizedHeaders.findIndex((value) => value === 'pa' || value.includes('against') || value.includes('conceded')),
+        rank: normalizedHeaders.findIndex((value) => value === 'rank' || value === 'ranking'),
+        overallRank: normalizedHeaders.findIndex((value) => value.includes('overall') && value.includes('rank'))
+    };
+
+    const entries = [];
+    for (let rowIndex = headerIndex + 1; rowIndex < rows.length; rowIndex++) {
+        const row = rows[rowIndex];
+        if (!row) {
+            continue;
+        }
+
+        const nonEmptyCells = row.filter((cell) => !isValueEmpty(cell));
+        if (!nonEmptyCells.length) {
+            if (entries.length) {
+                break;
+            }
+            continue;
+        }
+
+        const combined = row.map((cell) => (typeof cell === 'string' ? cell.trim() : cell)).join(' ').toLowerCase();
+        if (combined.includes('reference') || combined.includes('group phase')) {
+            break;
+        }
+
+        const teamRaw = columnIndexes.team !== -1 ? row[columnIndexes.team] : null;
+        const teamName = sanitizeTeamName(teamRaw);
+        if (!teamName) {
+            continue;
+        }
+
+        const winsValue = columnIndexes.wins !== -1 ? sanitizeNumber(row[columnIndexes.wins]) : null;
+        const lossesValue = columnIndexes.losses !== -1 ? sanitizeNumber(row[columnIndexes.losses]) : null;
+        const saldoValue = columnIndexes.saldo !== -1 ? sanitizeNumber(row[columnIndexes.saldo]) : null;
+        const pointsForValue = columnIndexes.pointsFor !== -1 ? sanitizeNumber(row[columnIndexes.pointsFor]) : null;
+        const pointsAgainstValue = columnIndexes.pointsAgainst !== -1 ? sanitizeNumber(row[columnIndexes.pointsAgainst]) : null;
+
+        const rankCandidate = columnIndexes.rank !== -1 ? row[columnIndexes.rank] : null;
+        const overallCandidate = columnIndexes.overallRank !== -1 ? row[columnIndexes.overallRank] : null;
+        const rankValue = parseRankValue(rankCandidate ?? overallCandidate, entries.length + 1);
+
+        const entry = {
+            rank: rankValue,
+            team: teamName,
+            wins: winsValue,
+            losses: lossesValue,
+            saldo: saldoValue,
+            pointsFor: pointsForValue,
+            pointsAgainst: pointsAgainstValue
+        };
+
+        if (entry.pointsAgainst === null && entry.pointsFor !== null && entry.saldo !== null) {
+            entry.pointsAgainst = entry.pointsFor - entry.saldo;
+        }
+
+        entries.push(entry);
+    }
+
+    return entries;
+}
+
+function extractEliminationBracket(sheet) {
+    void sheet;
+    return [];
+}
+
+function getRankingMetaForClient() {
+    if (!rankingSource?.path || !fs.existsSync(rankingSource.path)) {
+        return {
+            hasFile: false,
+            originalName: null,
+            uploadedAt: null,
+            size: 0
+        };
+    }
+
+    return {
+        hasFile: true,
+        originalName: rankingSource.originalName || 'ranking-latest.xlsx',
+        uploadedAt: rankingSource.uploadedAt || null,
+        size: rankingSource.size || 0
+    };
+}
+
+async function getDivisionRanking(division, forceRefresh = false) {
+    const divisionKey = typeof division === 'string' ? division.trim() : '';
+    if (!divisionKey) {
+        throw new Error('Division is required for ranking data');
+    }
+
+    const cacheKey = divisionKey.toLowerCase();
+    const cached = rankingCache.division.get(cacheKey);
+    if (cached && !forceRefresh && (Date.now() - cached.timestamp < RANKINGS_REFRESH_INTERVAL)) {
+        return cached.data;
+    }
+
+    const workbook = loadRankingWorkbook(forceRefresh);
+    const sheetName = DIVISION_SHEET_MAP[divisionKey] || divisionKey;
+    const sheet = workbook.Sheets[sheetName];
+
+    if (!sheet) {
+        throw new Error(`Worksheet "${sheetName}" not found in uploaded rankings file`);
+    }
+
+    const group = extractGroupRanking(sheet);
+    const elimination = extractEliminationBracket(sheet);
+
+    const data = {
+        division: divisionKey,
+        sheet: sheetName,
+        updatedAt: new Date().toISOString(),
+        group,
+        elimination,
+        source: getRankingMetaForClient()
+    };
+
+    rankingCache.division.set(cacheKey, { data, timestamp: Date.now() });
+    return data;
+}
 
 // Create our web server
 const app = express();
@@ -116,7 +516,13 @@ let gameState = {
     },
 
     // Overlay look-and-feel configuration
-    overlaySettings: cloneOverlaySettings()
+    overlaySettings: cloneOverlaySettings(),
+
+    // Ranking overlay defaults
+    rankingSettings: {
+        division: 'Male A',
+        phase: 'group'
+    }
 };
 
 /**
@@ -157,6 +563,7 @@ io.on('connection', (socket) => {
     // Send current game state to newly connected client
     socket.emit('gameStateUpdate', gameState);
     socket.emit('overlaySettingsUpdate', gameState.overlaySettings);
+    socket.emit('rankingSourceUpdate', getRankingMetaForClient());
     
     /**
      * SCORE UPDATES
@@ -333,6 +740,59 @@ io.on('connection', (socket) => {
 
         if (divisionChanged) {
             io.emit('tournamentInfoUpdate', gameState.tournament);
+        }
+    });
+
+    socket.on('updateRankingSettings', async (payload = {}, ack) => {
+        const callback = typeof ack === 'function' ? ack : () => {};
+
+        try {
+            if (typeof payload !== 'object' || payload === null) {
+                return callback({ ok: false, error: 'Invalid payload received.' });
+            }
+
+            const updates = { ...gameState.rankingSettings };
+
+            if (typeof payload.division === 'string' && payload.division.trim()) {
+                updates.division = payload.division.trim();
+            }
+
+            if (typeof payload.phase === 'string') {
+                const normalizedPhase = payload.phase.trim().toLowerCase();
+                if (['group', 'elimination', 'auto'].includes(normalizedPhase)) {
+                    updates.phase = normalizedPhase;
+                }
+            }
+
+            const forceRefresh = Boolean(payload.forceRefresh);
+            if (forceRefresh) {
+                resetRankingCache();
+            }
+
+            gameState.rankingSettings = updates;
+            io.emit('rankingSettingsUpdate', gameState.rankingSettings);
+
+            const meta = getRankingMetaForClient();
+            socket.emit('rankingSourceUpdate', meta);
+
+            if (!meta.hasFile) {
+                return callback({
+                    ok: false,
+                    error: 'No ranking workbook uploaded yet. Please upload the latest spreadsheet.'
+                });
+            }
+
+            try {
+                await getDivisionRanking(gameState.rankingSettings.division, forceRefresh);
+            } catch (rankingError) {
+                console.warn('⚠️  Unable to preload ranking data:', rankingError.message);
+                return callback({ ok: false, error: rankingError.message });
+            }
+
+            callback({ ok: true, settings: gameState.rankingSettings, meta });
+        } catch (error) {
+            console.error('❌ Error updating ranking settings:', error.message);
+            callback({ ok: false, error: error.message || 'Failed to update ranking settings.' });
         }
     });
     
@@ -518,6 +978,89 @@ app.get('/api/rankings', async (req, res) => {
         res.status(500).json({ 
             error: error.message,
             message: 'Failed to fetch rankings from Google Sheets'
+        });
+    }
+});
+
+app.get('/api/ranking-meta', (req, res) => {
+    const meta = getRankingMetaForClient();
+    res.json(meta);
+});
+
+app.post('/api/ranking-upload', (req, res) => {
+    rankingUpload.single('rankingWorkbook')(req, res, (error) => {
+        if (error) {
+            console.error('❌ Ranking upload failed:', error.message);
+            const status = error.message.includes('supported') ? 400 : 500;
+            return res.status(status).json({
+                success: false,
+                error: error.message || 'Upload failed'
+            });
+        }
+
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'No file received. Please select an Excel workbook.'
+            });
+        }
+
+        try {
+            const uploadedAt = new Date().toISOString();
+            updateRankingSource({
+                path: req.file.path,
+                originalName: req.file.originalname,
+                uploadedAt,
+                size: req.file.size
+            });
+
+            resetRankingCache();
+
+            const meta = getRankingMetaForClient();
+            io.emit('rankingSourceUpdate', meta);
+            io.emit('rankingSettingsUpdate', gameState.rankingSettings);
+
+            res.json({
+                success: true,
+                meta
+            });
+        } catch (uploadError) {
+            console.error('❌ Error processing ranking upload:', uploadError.message);
+            res.status(500).json({
+                success: false,
+                error: uploadError.message || 'Failed to process uploaded workbook'
+            });
+        }
+    });
+});
+
+app.get('/api/ranking-data', async (req, res) => {
+    try {
+        const token = typeof req.query.division === 'string' ? req.query.division.trim() : '';
+        const division = token || gameState.rankingSettings?.division || 'Male A';
+        const forceParam = typeof req.query.force === 'string' ? req.query.force.toLowerCase() : '';
+        const forceRefresh = ['1', 'true', 'yes'].includes(forceParam);
+
+        const data = await getDivisionRanking(division, forceRefresh);
+        res.json(data);
+    } catch (error) {
+        console.error('❌ Error loading ranking data:', error.message);
+
+        if (error.message?.includes('No ranking workbook uploaded')) {
+            return res.status(404).json({
+                error: 'No ranking workbook uploaded yet. Please upload the latest spreadsheet first.'
+            });
+        }
+
+        if (error.message?.includes('not found')) {
+            return res.status(404).json({
+                error: error.message
+            });
+        }
+
+        res.status(500).json({
+            error: 'Failed to load ranking data',
+            details: error.message
         });
     }
 });
