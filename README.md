@@ -12,34 +12,58 @@ A complete solution for livestreaming footvolley tournaments with professional o
 - **⚡ Real-Time Updates** - Instant synchronization between control and overlay
 - **🖥️ GoPro Compatible** - Works with GoPro Webcam Utility
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Clone to Overlay)
 
-### 1. Setup
+Follow these exact steps from a clean machine:
+
+### 1. Clone the repository
 ```bash
-# Make setup script executable
-chmod +x setup.sh
+git clone https://github.com/rsilvabuarque/footvolley_livestream.git
+cd footvolley_livestream
+```
 
-# Run setup
+### 2. Install Node.js dependencies
+Use Node.js 18+.
+
+```bash
+npm install
+```
+
+### 3. Optional: run setup script (installs helper files/checks)
+Linux/macOS:
+
+```bash
+chmod +x setup.sh
 ./setup.sh
 ```
 
-### 2. Start System
+Windows:
+
+```bat
+setup.bat
+```
+
+### 4. Start the web app
 ```bash
 npm start
 ```
 
-### 3. Configure OBS Studio
-1. Open OBS Studio
-2. Add **Video Capture Device** → Select GoPro Webcam
-3. Add **Browser Source**:
-   - URL: `http://localhost:3000/overlay.html`
-   - Width: 1920, Height: 1080
-   - ✅ Check "Shutdown source when not visible"
+### 5. Open the app pages
+- Referee control page: http://localhost:3000/control.html
+- OBS overlay page: http://localhost:3000/overlay.html
 
-### 4. Start Streaming
-- Referee control automatically opens in browser
-- Overlay appears in OBS
-- Start streaming to your platform!
+### 6. Add the overlay in OBS Studio
+1. Open OBS Studio
+2. Add **Video Capture Device** and select your camera (GoPro Webcam if used)
+3. Add **Browser Source** with:
+   - URL: http://localhost:3000/overlay.html
+   - Width: 1920
+   - Height: 1080
+   - Enable "Shutdown source when not visible"
+
+### 7. Start operating
+- Use the control page to update scores and match data in real time
+- Keep the overlay URL in OBS for stream output
 
 ## 🏗️ System Architecture
 
